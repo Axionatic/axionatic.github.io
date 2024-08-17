@@ -28,6 +28,7 @@
     h1 {
       font-size: min(15vw, 80px);
     }
+
     h2 {
       font-size: min(32px);
     }
@@ -35,7 +36,7 @@
     a {
       color: #fff;
       text-decoration: none;
-      transition: color 0.2s;
+      transition: color 0.3s;
     }
 
     a:hover {
@@ -46,9 +47,10 @@
       display: grid;
       grid-template-columns: repeat(3, 1fr);
       grid-template-rows: 1fr;
-      grid-gap: 32px;
+      row-gap: 64px;
+      column-gap: 32px;
       max-width: 1200px;
-      padding: 0 32px;
+      padding: 32px;
       margin: 0 auto;
     }
 
@@ -78,69 +80,54 @@
   <h1>Mark's Sketches</h1>
   <p style="margin-bottom: 32px;">Some things I've made for fun</p>
   <div class="grid">
+    <a href="forest/" class="grid-cell">
+      <img src="forest/forest.png" alt="Forest">
+      <h2>Forest</h2>
+      <p>Patience is rewarded</p>
+    </a>
     <a href="microbes/" class="grid-cell">
       <img src="microbes/microbes.png" alt="Microbes">
       <h2>Microbes</h2>
       <p>Excited little dots</p>
     </a>
-    <a href="waterfall/" class="grid-cell">
-      <img src="waterfall/waterfall.jpg" alt="Waterfall">
-      <h2>Waterfall</h2>
-      <p>Drip, drip, drop</p>
+    <a href="drift2/" class="grid-cell">
+      <img src="drift2/drift2.png" alt="Drift V2">
+      <h2>Drift V2</h2>
+      <p>For Drift Arts Festival</p>
     </a>
     <a href="bioluminescence/" class="grid-cell">
       <img src="bioluminescence/bioluminescence.jpg" alt="Bioluminescence">
       <h2 style="font-size: 32px;">Bioluminescence</h2>
       <p>Tiny swimming things</p>
     </a>
-    <a href="https://example.com" class="grid-cell">
-      <img src="https://via.placeholder.com/300" alt="Placeholder image">
-      <h2>Title</h2>
-      <p>Description</p>
+    <a href="cubeworms/" class="grid-cell">
+      <img src="cubeworms/cubeworms.jpg" alt="Cubeworms">
+      <h2>Cubeworms</h2>
+      <p>Wanderers in the void</p>
     </a>
-    <a href="https://example.com" class="grid-cell">
-      <img src="https://via.placeholder.com/300" alt="Placeholder image">
-      <h2>Title</h2>
-      <p>Description</p>
+    <a href="drift1/" class="grid-cell">
+      <img src="drift1/drift1.png" alt="Drift V1">
+      <h2>Drift V1</h2>
+      <p>For Drift Arts Festival</p>
     </a>
-    <a href="https://example.com" class="grid-cell">
-      <img src="https://via.placeholder.com/300" alt="Placeholder image">
-      <h2>Title</h2>
-      <p>Description</p>
+    <a href="waterfall/" class="grid-cell">
+      <img src="waterfall/waterfall.jpg" alt="Waterfall">
+      <h2>Waterfall</h2>
+      <p>Drip, drip, drop</p>
     </a>
-    <a href="https://example.com" class="grid-cell">
-      <img src="https://via.placeholder.com/300" alt="Placeholder image">
-      <h2>Title</h2>
-      <p>Description</p>
+    <a href="flowsphere/" class="grid-cell">
+      <img src="flowsphere/flowsphere.png" alt="Flowsphere">
+      <h2>Flowsphere</h2>
+      <p>Mystic marble</p>
     </a>
-    <a href="https://example.com" class="grid-cell">
-      <img src="https://via.placeholder.com/300" alt="Placeholder image">
-      <h2>Title</h2>
-      <p>Description</p>
-    </a>
-    <a href="https://example.com" class="grid-cell">
-      <img src="https://via.placeholder.com/300" alt="Placeholder image">
-      <h2>Title</h2>
-      <p>Description</p>
-    </a>
-    <a href="https://example.com" class="grid-cell">
-      <img src="https://via.placeholder.com/300" alt="Placeholder image">
-      <h2>Title</h2>
-      <p>Description</p>
-    </a>
-    <a href="https://example.com" class="grid-cell">
-      <img src="https://via.placeholder.com/300" alt="Placeholder image">
-      <h2>Title</h2>
-      <p>Description</p>
-    </a>
-    <a href="https://example.com" class="grid-cell">
-      <img src="https://via.placeholder.com/300" alt="Placeholder image">
-      <h2>Title</h2>
-      <p>Description</p>
+    <a href="constellations/" class="grid-cell">
+      <img src="constellations/constellations.jpg" alt="Constellations">
+      <h2>Constellations</h2>
+      <p>Linked lights</p>
     </a>
   </div>
   <script>
-    var m='Mark Dingwall ',w=0;setInterval(()=>{document.title=`${m.substring(w)}${m.substring(0,w)}`;w=(w+(m[w]==' '?2:1))%m.length;},500);
+    var m = 'Mark Dingwall ', w = 0; setInterval(() => { document.title = `${m.substring(w)}${m.substring(0, w)}`; w = (w + (m[w] == ' ' ? 2 : 1)) % m.length; }, 500);
   </script>
 </body>
 
