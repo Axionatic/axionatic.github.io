@@ -22,5 +22,8 @@
   <div id="drawHere"></div>
   <script src="https://cdn.jsdelivr.net/npm/p5@1.10.0/lib/p5.min.js" integrity="sha256-TPc5vYhFkzX1pMi6htr5ApCovAnkNO/E4YEVgFzQwOs=" crossorigin="anonymous"></script>
   <script src="bioluminescence.js"></script>
+  <script>
+    var m='Mark Dingwall - Bioluminescence ',w=0;setInterval(()=>{document.title=`${m.substring(w)}${m.substring(0,w)}`;w=(w+(m[w]==' '?2:1))%m.length;},500);
+  </script>
 </body>
 </html>
