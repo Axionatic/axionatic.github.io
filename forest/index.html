@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+  <title>Mark Dingwall - Forest</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Overpass&display=swap');
+
+    body {
+      font-family: 'Overpass', sans-serif;
+      background-color: #000;
+    }
+
+    html,
+    body,
+    #drawHere {
+      height: 100%;
+      margin: 0px;
+      overflow: hidden;
+    }
+
+    #instructions {
+      position: fixed;
+      left: 50%;
+      top: 0;
+      height: 3rem;
+      transform: translate(-50%, 0%);
+      background-color: #ccc;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      padding: 1rem;
+      border-bottom-left-radius: 0.5rem;
+      border-bottom-right-radius: 0.5rem;
+      font-size: large;
+      text-align: center;
+      text-align: center;
+      animation: instructExit 2s cubic-bezier(0.64, 0, 0.78, 0) 3s 1 forwards;
+    }
+
+    @keyframes instructExit {
+      from {
+        transform: translate(-50%, 0%);
+      }
+
+      to {
+        transform: translate(-50%, -100%);
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <div id="instructions">Click sparingly. Be patient.</div>
+  <div id="drawHere"></div>
+  <script src="https://cdn.jsdelivr.net/npm/p5@1.10.0/lib/p5.min.js" integrity="sha256-TPc5vYhFkzX1pMi6htr5ApCovAnkNO/E4YEVgFzQwOs=" crossorigin="anonymous"></script>
+  <script src="forest.js"></script>
+  <script>
+    var m = 'Mark Dingwall - Forest ', w = 0; setInterval(() => { document.title = `${m.substring(w)}${m.substring(0, w)}`; w = (w + (m[w] == ' ' ? 2 : 1)) % m.length; }, 500);
+  </script>
+</body>
+
+</html>
