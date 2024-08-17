@@ -46,7 +46,7 @@
 <body>
   <div id="instructions">Mouse mouse or drag finger. Click or tap to 💥</div>
   <div id="drawHere"></div>
-  <script src="https://cdn.jsdelivr.net/npm/p5@1.4.0/lib/p5.min.js" integrity="sha256-EM2Tq3gRziyMygZmrj4gW6uMcSj5t6z+De0+eNSyfWM=" crossorigin="anonymous"></script>
+  <script src="https://cdn.jsdelivr.net/npm/p5@1.10.0/lib/p5.min.js" integrity="sha256-TPc5vYhFkzX1pMi6htr5ApCovAnkNO/E4YEVgFzQwOs=" crossorigin="anonymous"></script>
   <script>
     var FRAMERATE=60,MAX_H=360,MAX_SBA=100,DOT_COUNT=120,MOUSE_INF_RAD=300,MOUSE_INF_RND=5,ENERGY_MULT_STEP=.2,DEFAULT_ENERGY=2,MIN_STROKE=5,MAX_STROKE=10,MIN_WAIT=0,MAX_WAIT=25,MIN_D_TIME=.5,MAX_D_TIME=1,MIN_EASE_POW=3,MAX_EASE_POW=6,DEST_RAD=170,RAND_RAD=200,MIN_PATH_LEN=4,MAX_PATH_LEN=8,MIN_PATH_OFF=5,MAX_PATH_OFF=25,DASH_ACCURACY=9,DASH_TRAIL=.15,CLICK_COOLDOWN=.8,DIST_R_MULT=70,cnv,dots,mouseActive,ENERGY_MULT;
     function setup(){frameRate(FRAMERATE);cnv=createCanvas(windowWidth,windowHeight);cnv.parent("drawHere");cnv.mouseOver(setMouseActive);cnv.mouseOut(setMouseInactive);colorMode(HSB,MAX_H,MAX_SBA,MAX_SBA,MAX_SBA);strokeJoin(ROUND);ENERGY_MULT=ENERGY_MULT_STEP*DEFAULT_ENERGY;dots=Array(DOT_COUNT);for(var a=0;a<DOT_COUNT;a++)dots[a]=new Dot}function setMouseActive(){mouseActive=!0}function setMouseInactive(){mouseActive=!1}
