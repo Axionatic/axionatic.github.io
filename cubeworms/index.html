@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Major+Mono+Display&family=VT323&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../reset.css">
+  <title>Mark Dingwall - Cubeworms</title>
+  <style>
+    body {
+      background-color: #000;
+      color: #fff;
+      font-family: "VT323", monospace;
+      font-weight: 400;
+      font-style: normal;
+      font-size: 32px;
+      text-align: center;
+    }
+
+    h1 {
+      font-family: "Major Mono Display", monospace;
+      font-size: min(14vw, 80px);
+    }
+
+    a {
+      color: #0cc;
+    }
+
+    a:visited {
+      color: #c0c;
+    }
+
+    .video-container-container {
+      width: min(100vw, 900px);
+      margin: 0 auto;
+    }
+
+    .video-container {
+      position: relative;
+      /* 16:9 */
+      padding-bottom: 56.25%;
+      width: 100%;
+      height: 0;
+    }
+
+    .video-container iframe {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+    }
+
+    .container {
+      padding-top: 2rem;
+      width: min(100vw, 900px);
+      margin: 0 auto;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="video-container-container">
+    <div class="video-container">
+      <iframe width="560" height="315" src="https://www.youtube.com/embed/VeqKrFk4hoQ?si=S9lIF6Wtyx7RUmcr&amp;start=5" title="YouTube video player" frameborder="0"
+      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin"
+      allowfullscreen></iframe>
+    </div>
+  </div>
+  <div class="container">
+    <h1>Cubeworms</h1>
+    <p>
+      <span>Made with</span>
+      <a href="https://processing.org">Processing</a>
+      <span>v3.</span>
+      <a href="https://drive.google.com/file/d/1U71iOpq9ylF3KjNUCecUU-7xOknTwS_r/view?usp=sharing">Download code</a>
+    </p>
+    <p>Online version coming soon...ish?</p>
+  </div>
+  <script>
+    var m = 'Mark Dingwall - Cubeworms ', w = 0; setInterval(() => { document.title = `${m.substring(w)}${m.substring(0, w)}`; w = (w + (m[w] == ' ' ? 2 : 1)) % m.length; }, 500);
+  </script>
+</body>
+
+</html>
