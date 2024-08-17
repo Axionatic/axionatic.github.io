@@ -62,6 +62,15 @@
       min-width: 300px;
     }
 
+    .floaty {
+      display: inline-block;
+      transition: transform 0.5s;
+    }
+
+    .grid-cell:not(:hover) .floaty {
+      transform: none !important;
+    }
+
     @media screen and (max-width: 695px) {
       .grid {
         grid-template-columns: 1fr;
@@ -126,6 +135,7 @@
       <p>Linked lights</p>
     </a>
   </div>
+  <script src="index.js"></script>
   <script>
     var m = 'Mark Dingwall ', w = 0; setInterval(() => { document.title = `${m.substring(w)}${m.substring(0, w)}`; w = (w + (m[w] == ' ' ? 2 : 1)) % m.length; }, 500);
   </script>
