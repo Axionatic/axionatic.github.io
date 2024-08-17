@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Overpass&display=swap');
+    body {
+      font-family: 'Overpass', sans-serif;
+    }
+    html,
+    body,
+    #drawHere {
+      height: 100%;
+      margin: 0px;
+      overflow: hidden;
+    }
+    #instructions {
+      position: fixed;
+      left: 50%;
+      top: 0;
+      height: 3rem;
+      transform: translate(-50%, 0%);
+      background-color: #ccc;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      padding: 1rem;
+      border-radius: 0.5rem;
+      font-size: large;
+      animation: instructExit 2s cubic-bezier(0.64, 0, 0.78, 0) 2s 1 forwards;
+    }
+    @keyframes instructExit {
+      from {
+        transform: translate(-50%, 0%);
+      }
+      to {
+        transform: translate(-50%, -100%);
+      }
+    }
+  </style>
+  <title>Mark Dingwall - Microbes</title>
+</head>
+
+<body>
+  <div id="instructions">Mouse mouse or drag finger. Click or tap to 💥</div>
+  <div id="drawHere"></div>
+  <script src="https://cdn.jsdelivr.net/npm/p5@1.4.0/lib/p5.min.js" integrity="sha256-EM2Tq3gRziyMygZmrj4gW6uMcSj5t6z+De0+eNSyfWM=" crossorigin="anonymous"></script>
+  <script>
+    var FRAMERATE=60,MAX_H=360,MAX_SBA=100,DOT_COUNT=120,MOUSE_INF_RAD=300,MOUSE_INF_RND=5,ENERGY_MULT_STEP=.2,DEFAULT_ENERGY=2,MIN_STROKE=5,MAX_STROKE=10,MIN_WAIT=0,MAX_WAIT=25,MIN_D_TIME=.5,MAX_D_TIME=1,MIN_EASE_POW=3,MAX_EASE_POW=6,DEST_RAD=170,RAND_RAD=200,MIN_PATH_LEN=4,MAX_PATH_LEN=8,MIN_PATH_OFF=5,MAX_PATH_OFF=25,DASH_ACCURACY=9,DASH_TRAIL=.15,CLICK_COOLDOWN=.8,DIST_R_MULT=70,cnv,dots,mouseActive,ENERGY_MULT;
+    function setup(){frameRate(FRAMERATE);cnv=createCanvas(windowWidth,windowHeight);cnv.parent("drawHere");cnv.mouseOver(setMouseActive);cnv.mouseOut(setMouseInactive);colorMode(HSB,MAX_H,MAX_SBA,MAX_SBA,MAX_SBA);strokeJoin(ROUND);ENERGY_MULT=ENERGY_MULT_STEP*DEFAULT_ENERGY;dots=Array(DOT_COUNT);for(var a=0;a<DOT_COUNT;a++)dots[a]=new Dot}function setMouseActive(){mouseActive=!0}function setMouseInactive(){mouseActive=!1}
+    function draw(){background(0,0,MAX_SBA/20,MAX_SBA);noFill();for(var a=0;a<DOT_COUNT;a++)dots[a].update(),dots[a].display()}
+    function Dot(){this.posX=[];this.posY=[];this.posLen=0;this.pathX=[];this.pathY=[];this.c=color;this.easePow=this.dashPerc=this.dashInc=this.nextDash=this.strWeight=0;this.clicked=!1;this.posX[0]=random(0,width);this.posY[0]=random(0,height);for(var a=1;a<DASH_ACCURACY;a++)this.posX[a]=this.posX[0],this.posY[a]=this.posY[0];this.dashInc=1/(random(MIN_D_TIME,MAX_D_TIME)*FRAMERATE);this.prepareNextDash(!0,void 0,void 0,RAND_RAD,!1,!1);this.nextDash=round(random(0,10*MAX_WAIT));this.easePow=random(MIN_EASE_POW,
+    MAX_EASE_POW);this.c=color(random(0,MAX_H),random(MAX_SBA/2,MAX_SBA),random(MAX_SBA/2,MAX_SBA),MAX_SBA);this.strWeight=random(MIN_STROKE,MAX_STROKE)}
+    Dot.prototype.update=function(){if(0<this.nextDash)this.nextDash--;else{this.dashPerc+=this.dashInc;this.posX=[];this.posY=[];for(var a=0;a<DASH_ACCURACY;a++){var b=constrain(this.dashPerc-DASH_TRAIL/DASH_ACCURACY*a,0,1);b=this.clicked?this.easeOut(b,this.easePow):this.animEase(b,this.easePow);b=this.calcPosOnPath(b);this.posX.push(b.x);this.posY.push(b.y)}this.dashPerc>1+DASH_TRAIL&&(mouseActive?this.prepareNextDash(!0,mouseX,mouseY,DEST_RAD,!0,!1):this.prepareNextDash(!0,void 0,void 0,RAND_RAD,
+    !1,!1))}};Dot.prototype.display=function(){stroke(this.c);strokeWeight(this.strWeight);if(0>=this.nextDash){beginShape();curveVertex(this.posX[0],this.posY[0]);for(var a=1;a<DASH_ACCURACY-1;a++)curveVertex(this.posX[a],this.posY[a]);curveVertex(this.posX[DASH_ACCURACY-1],this.posY[DASH_ACCURACY-1]);endShape()}else point(this.posX[0],this.posY[0])};
+    Dot.prototype.prepareNextDash=function(a,b,c,d,e,f){void 0===b||void 0===c?(c=p5.Vector.random2D().mult(random(0,d)*ENERGY_MULT),b=this.posX[0]+c.x,c=this.posY[0]+c.y):0<d&&(d=p5.Vector.random2D().mult(random(0,d)),b+=d.x,c+=d.y);if(void 0===e||!e)if(0>b||b>width||0>c||c>height)b=random(0,width),c=random(0,height);this.pathLen=round(random(MIN_PATH_LEN,MAX_PATH_LEN));this.pathX[0]=this.posX[0];this.pathY[0]=this.posY[0];e=p5.Vector.sub(createVector(b,c),createVector(this.posX[0],this.posY[0]));d=
+    max(e.mag()/DIST_R_MULT,1);for(var g=1;g<this.pathLen;g++){var h=p5.Vector.mult(e,g/this.pathLen);h.add(p5.Vector.random2D().mult(random(MIN_PATH_OFF,MAX_PATH_OFF)*ENERGY_MULT*d));this.pathX[g]=this.posX[0]+h.x;this.pathY[g]=this.posY[0]+h.y}this.pathX[this.pathLen]=b;this.pathY[this.pathLen]=c;this.nextDash=a?round(random(MIN_WAIT,MAX_WAIT)):0;this.dashPerc=0;this.clicked=void 0===f?!1:f};
+    Dot.prototype.calcPosOnPath=function(a){var b=a*this.pathLen,c=int(b),d=min(c+1,this.pathLen),e=max(c-1,0),f=min(d+1,this.pathLen);b-=c;a=curvePoint(this.pathX[e],this.pathX[c],this.pathX[d],this.pathX[f],b);b=curvePoint(this.pathY[e],this.pathY[c],this.pathY[d],this.pathY[f],b);return createVector(a,b)};
+    Dot.prototype.mousePush=function(a){var b=1-a.mag()/MOUSE_INF_RAD;b=b*MOUSE_INF_RAD*random(1,1+MOUSE_INF_RND);a=p5.Vector.mult(a.normalize(),b);this.prepareNextDash(!1,this.posX[0]+a.x,this.posY[0]+a.y,0,!0,!0)};Dot.prototype.animEase=function(a,b){a*=2;if(1>a)return pow(a,b)/2;a--;return 1-pow(1-a,b)/2};Dot.prototype.easeOut=function(a,b){return 1-pow(1-a,b)};
+    function mouseClicked(){for(var a=0;a<DOT_COUNT;a++){var b=dots[a];if(!(b.clicked&&b.dashPerc<CLICK_COOLDOWN)){var c=p5.Vector.sub(createVector(b.posX[0],b.posY[0]),createVector(mouseX,mouseY));c.mag()<MOUSE_INF_RAD&&b.mousePush(c)}}}var m='Mark Dingwall - Microbes',w=0;setInterval(()=>{document.title=`${m.substring(w)}${m.substring(0, w)}`;w=(w+(m[w]==' '?2:1))%m.length;},500);
+  </script>
+</body>
+
+</html>
