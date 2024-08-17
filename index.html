@@ -16,17 +16,20 @@
       font-family: "VT323", monospace;
       font-weight: 400;
       font-style: normal;
-      font-size: 2rem;
+      font-size: 32px;
       text-align: center;
-    }
-
-    h1 {
-      font-size: min(15vw, 5rem);
     }
 
     h1,
     h2 {
       font-family: "Major Mono Display", monospace;
+    }
+
+    h1 {
+      font-size: min(15vw, 80px);
+    }
+    h2 {
+      font-size: min(32px);
     }
 
     a {
@@ -43,9 +46,9 @@
       display: grid;
       grid-template-columns: repeat(3, 1fr);
       grid-template-rows: 1fr;
-      grid-gap: 2rem;
+      grid-gap: 32px;
       max-width: 1200px;
-      padding: 0 2rem;
+      padding: 0 32px;
       margin: 0 auto;
     }
 
@@ -54,15 +57,16 @@
       flex-direction: column;
       align-items: center;
       text-align: center;
+      min-width: 300px;
     }
 
-    @media screen and (max-width: 600px) {
+    @media screen and (max-width: 695px) {
       .grid {
         grid-template-columns: 1fr;
       }
     }
 
-    @media screen and (min-width: 601px) and (max-width: 900px) {
+    @media screen and (min-width: 696px) and (max-width: 1027px) {
       .grid {
         grid-template-columns: repeat(2, 1fr);
       }
@@ -72,22 +76,22 @@
 
 <body>
   <h1>Mark's Sketches</h1>
-  <p style="margin-bottom: 2rem;">Some things I've made for fun</p>
+  <p style="margin-bottom: 32px;">Some things I've made for fun</p>
   <div class="grid">
     <a href="microbes/" class="grid-cell">
-      <img src="microbes/microbes.png" alt="Placeholder image">
+      <img src="microbes/microbes.png" alt="Microbes">
       <h2>Microbes</h2>
       <p>Excited little dots</p>
     </a>
-    <a href="https://example.com" class="grid-cell">
-      <img src="https://via.placeholder.com/300" alt="Placeholder image">
-      <h2>Title</h2>
-      <p>Description</p>
+    <a href="waterfall/" class="grid-cell">
+      <img src="waterfall/waterfall.jpg" alt="Waterfall">
+      <h2>Waterfall</h2>
+      <p>Drip, drip, drop</p>
     </a>
-    <a href="https://example.com" class="grid-cell">
-      <img src="https://via.placeholder.com/300" alt="Placeholder image">
-      <h2>Title</h2>
-      <p>Description</p>
+    <a href="bioluminescence/" class="grid-cell">
+      <img src="bioluminescence/bioluminescence.jpg" alt="Bioluminescence">
+      <h2 style="font-size: 32px;">Bioluminescence</h2>
+      <p>Tiny swimming things</p>
     </a>
     <a href="https://example.com" class="grid-cell">
       <img src="https://via.placeholder.com/300" alt="Placeholder image">
