@@ -29,10 +29,6 @@
       font-size: min(15vw, 80px);
     }
 
-    h2 {
-      font-size: min(32px);
-    }
-
     a {
       color: #fff;
       text-decoration: none;
@@ -51,7 +47,7 @@
       column-gap: 32px;
       max-width: 1200px;
       padding: 32px;
-      margin: 0 auto;
+      margin: 32px auto;
     }
 
     .grid-cell {
@@ -60,6 +56,11 @@
       align-items: center;
       text-align: center;
       min-width: 300px;
+      container-type: inline-size;
+    }
+
+    .grid-cell h2, .grid-cell p {
+      font-size: min(9cqw, 32px);
     }
 
     .floaty {
@@ -71,15 +72,17 @@
       transform: none !important;
     }
 
-    @media screen and (max-width: 695px) {
+    @media screen and (max-width: 671px) {
       .grid {
         grid-template-columns: 1fr;
+        padding: 32px 16px;
       }
     }
 
-    @media screen and (min-width: 696px) and (max-width: 1027px) {
+    @media screen and (min-width: 672px) and (max-width: 1027px) {
       .grid {
         grid-template-columns: repeat(2, 1fr);
+        padding: 32px 24px;
       }
     }
   </style>
@@ -87,53 +90,71 @@
 
 <body>
   <h1>Mark's Sketches</h1>
-  <p style="margin-bottom: 32px;">Some things I've made for fun</p>
+  <p>Some things I've made for fun</p>
   <div class="grid">
-    <a href="forest/" class="grid-cell">
-      <img src="forest/forest.png" alt="Forest">
-      <h2>Forest</h2>
-      <p>Patience is rewarded</p>
-    </a>
-    <a href="microbes/" class="grid-cell">
-      <img src="microbes/microbes.png" alt="Microbes">
-      <h2>Microbes</h2>
-      <p>Excited little dots</p>
-    </a>
-    <a href="drift2/" class="grid-cell">
-      <img src="drift2/drift2.png" alt="Drift V2">
-      <h2>Drift V2</h2>
-      <p>For Drift Arts Festival</p>
-    </a>
-    <a href="bioluminescence/" class="grid-cell">
-      <img src="bioluminescence/bioluminescence.jpg" alt="Bioluminescence">
-      <h2 style="font-size: 32px;">Bioluminescence</h2>
-      <p>Tiny swimming things</p>
-    </a>
-    <a href="cubeworms/" class="grid-cell">
-      <img src="cubeworms/cubeworms.jpg" alt="Cubeworms">
-      <h2>Cubeworms</h2>
-      <p>Wanderers in the void</p>
-    </a>
-    <a href="drift1/" class="grid-cell">
-      <img src="drift1/drift1.png" alt="Drift V1">
-      <h2>Drift V1</h2>
-      <p>For Drift Arts Festival</p>
-    </a>
-    <a href="waterfall/" class="grid-cell">
-      <img src="waterfall/waterfall.jpg" alt="Waterfall">
-      <h2>Waterfall</h2>
-      <p>Drip, drip, drop</p>
-    </a>
-    <a href="flowsphere/" class="grid-cell">
-      <img src="flowsphere/flowsphere.png" alt="Flowsphere">
-      <h2>Flowsphere</h2>
-      <p>Mystic marble</p>
-    </a>
-    <a href="constellations/" class="grid-cell">
-      <img src="constellations/constellations.jpg" alt="Constellations">
-      <h2>Constellations</h2>
-      <p>Linked lights</p>
-    </a>
+    <div class="grid-cell">
+      <a href="forest/">
+        <img src="forest/forest.png" alt="Forest">
+        <h2>Forest</h2>
+        <p>Patience is rewarded</p>
+      </a>
+    </div>
+    <div class="grid-cell">
+      <a href="microbes/">
+        <img src="microbes/microbes.png" alt="Microbes">
+        <h2>Microbes</h2>
+        <p>Excited little dots</p>
+      </a>
+    </div>
+    <div class="grid-cell">
+      <a href="drift2/">
+        <img src="drift2/drift2.png" alt="Drift V2">
+        <h2>Drift V2</h2>
+        <p>Drift Arts Festival</p>
+      </a>
+    </div>
+    <div class="grid-cell">
+      <a href="bioluminescence/">
+        <img src="bioluminescence/bioluminescence.jpg" alt="Bioluminescence">
+        <h2>Bioluminescence</h2>
+        <p>Tiny swimming things</p>
+      </a>
+    </div>
+    <div class="grid-cell">
+      <a href="cubeworms/">
+        <img src="cubeworms/cubeworms.jpg" alt="Cubeworms">
+        <h2>Cubeworms</h2>
+        <p>Wanderers in the void</p>
+      </a>
+    </div>
+    <div class="grid-cell">
+      <a href="drift1/">
+        <img src="drift1/drift1.png" alt="Drift V1">
+        <h2>Drift V1</h2>
+        <p>Drift Arts Festival</p>
+      </a>
+    </div>
+    <div class="grid-cell">
+      <a href="waterfall/">
+        <img src="waterfall/waterfall.jpg" alt="Waterfall">
+        <h2>Waterfall</h2>
+        <p>Drip, drip, drop</p>
+      </a>
+    </div>
+    <div class="grid-cell">
+      <a href="flowsphere/">
+        <img src="flowsphere/flowsphere.png" alt="Flowsphere">
+        <h2>Flowsphere</h2>
+        <p>Mystic marble</p>
+      </a>
+    </div>
+    <div class="grid-cell">
+      <a href="constellations/">
+        <img src="constellations/constellations.jpg" alt="Constellations">
+        <h2>Constellations</h2>
+        <p>Linked lights</p>
+      </a>
+    </div>
   </div>
   <script src="index.js"></script>
   <script>
