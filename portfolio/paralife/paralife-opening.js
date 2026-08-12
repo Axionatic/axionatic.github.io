@@ -84,6 +84,8 @@
     const frameLayer = document.getElementById('frame-layer');
     const perceptionLayer = document.getElementById('perception-layer');
     const legendLayer = document.getElementById('legend-layer');
+    const legendSpecies = Array.from(legendLayer.querySelectorAll('.legend-species'));
+    const legendCycle = document.getElementById('legend-cycle');
     const networkLayer = document.getElementById('network-layer');
     const clientLayer = document.getElementById('network-clients');
     const linkLayer = document.getElementById('network-links');
@@ -133,7 +135,12 @@
       };
       const networkMorph = between(progress, 0.60, 0.70);
       const legendFrame = mixRect(observer.frame, legendRect, legendMorph);
-      const currentFrame = mixRect(legendFrame, serverRect, networkMorph);
+      let currentFrame = mixRect(legendFrame, serverRect, networkMorph);
+      if (reduced.matches) {
+        currentFrame = state.beat === 'world' || state.beat === 'perception'
+          ? observer.frame
+          : state.beat === 'emergence' ? legendRect : serverRect;
+      }
       const radiusX = mobile ? viewport.width * 0.38 : viewport.width * 0.24;
       const radiusY = mobile ? viewport.height * 0.22 : viewport.height * 0.30;
       const affected = new Set(['client-03', 'client-11']);
@@ -147,13 +154,26 @@
       frame.dataset.state = 'healthy';
       observed.setAttribute('cx', observer.entity.x.toFixed(2));
       observed.setAttribute('cy', observer.entity.y.toFixed(2));
+      const legendCenterX = legendRect.x + legendRect.width / 2;
+      const legendStartY = legendRect.y + legendRect.height * 0.30;
+      legendSpecies.forEach((label, index) => {
+        label.setAttribute('x', legendCenterX.toFixed(2));
+        label.setAttribute('y', (legendStartY + index * Math.min(54, legendRect.height * 0.14)).toFixed(2));
+      });
+      legendCycle.setAttribute('x', legendCenterX.toFixed(2));
+      legendCycle.setAttribute('y', (legendRect.y + legendRect.height * 0.82).toFixed(2));
 
       clients.forEach((client) => {
         const angle = -Math.PI / 2 + client.index * (Math.PI * 2 / clients.length);
         const ring = 0.82 + (client.index % 3) * 0.09;
         const x = server.x + Math.cos(angle) * radiusX * ring;
         const y = server.y + Math.sin(angle) * radiusY * ring;
-        const clientState = affected.has(client.id) ? state.clientPhase : 'healthy';
+        let clientState = affected.has(client.id) ? state.clientPhase : 'healthy';
+        if (state.clientPhase === 'static') {
+          clientState = client.id === 'client-03' ? 'stalled'
+            : client.id === 'client-11' ? 'recovered'
+            : 'healthy';
+        }
         client.group.setAttribute('transform', `translate(${x.toFixed(2)} ${y.toFixed(2)})`);
         client.link.setAttribute('d', `M ${server.x.toFixed(2)} ${server.y.toFixed(2)} L ${x.toFixed(2)} ${y.toFixed(2)}`);
         client.group.dataset.state = clientState;
@@ -178,6 +198,8 @@
 
       root.dataset.activeBeat = state.beat;
       root.dataset.clientPhase = state.clientPhase;
+      root.dataset.layout = mobile ? 'mobile' : 'desktop';
+      root.dataset.reducedMotion = reduced.matches ? 'true' : 'false';
       root.style.opacity = techFade;
       lines.forEach((line, index) => {
         line.style.opacity = reduced.matches

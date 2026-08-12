@@ -109,6 +109,21 @@
 #recovery-label { fill: rgba(255, 255, 255, 0.82); text-anchor: middle; font-size: 12px; letter-spacing: 0.08em; }
 #reconnect-path { fill: none; stroke: #fc6; stroke-width: 2; stroke-dasharray: 7 5; }
 
+#legend-layer text { text-anchor: middle; fill: rgba(255, 255, 255, 0.78); }
+#legend-layer .legend-species { font-size: clamp(18px, 2.2vw, 30px); letter-spacing: 0.16em; }
+#legend-layer .legend-catalyst { fill: #0cc; }
+#legend-layer .legend-membrane { fill: #be8cff; }
+#legend-layer .legend-spore { fill: #ffa046; }
+#legend-cycle { font-size: clamp(10px, 1.2vw, 15px); letter-spacing: 0.08em; }
+
+.opening-line[data-beat="concurrency"] {
+  left: 6vw;
+  top: 38%;
+  width: min(390px, 34vw);
+  font-size: clamp(20px, 2.5vw, 34px);
+  color: rgba(255, 255, 255, 0.94);
+}
+
 /* -- Row 1: architecture SVG ------------------------------------------- */
 .arch-svg { max-width: 380px; }
 
@@ -345,6 +360,41 @@
 
 /* -- Responsive -------------------------------------------------------- */
 @media (max-width: 800px) {
+  .opening-line[data-beat="world"] {
+    left: 4vw;
+    right: 4vw;
+    top: 38%;
+    font-size: clamp(28px, 9vw, 46px);
+  }
+
+  .opening-line[data-beat="perception"],
+  .opening-line[data-beat="emergence"] {
+    width: 84vw;
+    font-size: clamp(18px, 5vw, 24px);
+  }
+
+  .opening-line[data-beat="concurrency"] {
+    left: 7vw;
+    right: 7vw;
+    top: 18%;
+    width: auto;
+    text-align: center;
+    font-size: clamp(19px, 5.4vw, 26px);
+  }
+
+  .network-client[data-client-id="client-12"],
+  .network-client[data-client-id="client-13"],
+  .network-client[data-client-id="client-14"],
+  .network-client[data-client-id="client-15"],
+  .network-client[data-client-id="client-16"],
+  .network-client[data-client-id="client-17"],
+  .network-link[data-client-id="client-12"],
+  .network-link[data-client-id="client-13"],
+  .network-link[data-client-id="client-14"],
+  .network-link[data-client-id="client-15"],
+  .network-link[data-client-id="client-16"],
+  .network-link[data-client-id="client-17"] { display: none; }
+
   .trace-compare {
     grid-template-columns: 1fr;
   }
@@ -353,6 +403,12 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
+  .opening-line,
+  #opening-visuals * {
+    transition: opacity 120ms linear;
+    animation: none !important;
+  }
+
   .pin-vt-stuck,
   .pin-vt-free,
   .flow-path,

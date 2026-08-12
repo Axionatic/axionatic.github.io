@@ -116,3 +116,81 @@ test('healthy clients remain healthy while affected clients stall', async ({ pag
   await expect(page.locator('.network-client[data-client-id="client-04"]')).toHaveAttribute('data-state', 'healthy');
   await expect(page.locator('#morph-frame')).toHaveAttribute('data-state', 'healthy');
 });
+
+test('concurrency copy is left of the network on desktop and above it on mobile', async ({ page }) => {
+  await navigateToPortfolioPage(page, PARALIFE_PATH);
+  await scrollToProgress(page, 0.86);
+
+  const copy = await page.locator('.opening-line[data-beat="concurrency"]').boundingBox();
+  const server = await page.locator('#morph-frame[data-role="server"]').boundingBox();
+  expect(copy).not.toBeNull();
+  expect(server).not.toBeNull();
+  if (page.viewportSize()!.width > 800) {
+    expect(copy!.x + copy!.width).toBeLessThan(server!.x);
+  } else {
+    expect(copy!.y + copy!.height).toBeLessThan(server!.y);
+  }
+});
+
+test('responsive narrative geometry clears chrome and stays inside its visual frame', async ({ page }) => {
+  await navigateToPortfolioPage(page, PARALIFE_PATH);
+
+  await scrollToProgress(page, 0.30);
+  const perceptionCopy = await page.locator('.opening-line[data-beat="perception"]').boundingBox();
+  const perceptionFrame = await page.locator('#morph-frame').boundingBox();
+  const header = await page.locator('#header-panel').boundingBox();
+  const nav = await page.locator('.nav-btn').boundingBox();
+  expect(perceptionCopy).not.toBeNull();
+  expect(perceptionFrame).not.toBeNull();
+  expect(header).not.toBeNull();
+  expect(nav).not.toBeNull();
+  expect(perceptionCopy!.x).toBeGreaterThanOrEqual(perceptionFrame!.x - 2);
+  expect(perceptionCopy!.y).toBeGreaterThanOrEqual(perceptionFrame!.y - 2);
+  expect(perceptionCopy!.x + perceptionCopy!.width).toBeLessThanOrEqual(perceptionFrame!.x + perceptionFrame!.width + 2);
+  expect(perceptionCopy!.y + perceptionCopy!.height).toBeLessThanOrEqual(perceptionFrame!.y + perceptionFrame!.height + 2);
+  expect(perceptionFrame!.y).toBeGreaterThanOrEqual(header!.y + header!.height - 2);
+  const frameOverlapsNav = !(
+    perceptionFrame!.x + perceptionFrame!.width <= nav!.x ||
+    perceptionFrame!.x >= nav!.x + nav!.width ||
+    perceptionFrame!.y + perceptionFrame!.height <= nav!.y ||
+    perceptionFrame!.y >= nav!.y + nav!.height
+  );
+  expect(frameOverlapsNav).toBe(false);
+
+  await scrollToProgress(page, 0.50);
+  const legend = await page.locator('#legend-layer').boundingBox();
+  const legendFrame = await page.locator('#morph-frame').boundingBox();
+  expect(legend).not.toBeNull();
+  expect(legendFrame).not.toBeNull();
+  expect(legend!.x).toBeGreaterThanOrEqual(legendFrame!.x - 2);
+  expect(legend!.y).toBeGreaterThanOrEqual(legendFrame!.y - 2);
+  expect(legend!.x + legend!.width).toBeLessThanOrEqual(legendFrame!.x + legendFrame!.width + 2);
+  expect(legend!.y + legend!.height).toBeLessThanOrEqual(legendFrame!.y + legendFrame!.height + 2);
+});
+
+test('reduced motion shows static stalled and recovered examples', async ({ page }) => {
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  await navigateToPortfolioPage(page, PARALIFE_PATH);
+  await scrollToProgress(page, 0.86);
+
+  await expect(page.locator('#opening-story')).toHaveAttribute('data-reduced-motion', 'true');
+  await expect(page.locator('#opening-story')).toHaveAttribute('data-client-phase', 'static');
+  await expect(page.locator('.network-client[data-client-id="client-03"]')).toHaveAttribute('data-state', 'stalled');
+  await expect(page.locator('.network-client[data-client-id="client-11"]')).toHaveAttribute('data-state', 'recovered');
+  await expect(page.locator('#legend-layer')).not.toContainText(/\d+%|\d+ entities/);
+});
+
+test('opening hands off without changing technical content', async ({ page }) => {
+  await navigateToPortfolioPage(page, PARALIFE_PATH);
+  await scrollToTechSection(page);
+
+  await expect(page.locator('#opening-story')).toBeHidden();
+  await expect(page.locator('#opening-visuals')).toBeHidden();
+  await expect(page.locator('#tech-content .row-title')).toHaveText([
+    'One writer, a thousand readers',
+    'The deadlock that taught me Loom',
+    "Slow clients don't get to win",
+    'Proving a rewrite changed nothing',
+  ]);
+  await expect(page.locator('#tech-content .row')).toHaveCount(4);
+});
