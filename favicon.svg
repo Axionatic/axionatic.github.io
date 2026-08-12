@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
+  <!-- The site's 2x2 quad navigation. Top-right is lit: it's the default view. -->
+  <rect width="32" height="32" rx="6" fill="#000"/>
+  <g fill="#0cc">
+    <rect x="5"  y="5"  width="10" height="10" rx="1.5" opacity="0.22"/>
+    <rect x="17" y="5"  width="10" height="10" rx="1.5"/>
+    <rect x="5"  y="17" width="10" height="10" rx="1.5" opacity="0.22"/>
+    <rect x="17" y="17" width="10" height="10" rx="1.5" opacity="0.22"/>
+  </g>
+</svg>
