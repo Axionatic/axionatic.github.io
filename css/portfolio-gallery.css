@@ -60,12 +60,15 @@ h1, h2 {
   outline: 2px solid #0cc;
 }
 
+/* Resting opacity carries the whole gallery. Held low, every card that isn't
+   the active one reads as the same dark rectangle and the artwork — which is
+   the only thing distinguishing six projects — is thrown away. */
 .card canvas {
   position: absolute;
   inset: 0;
   width: 100%;
   height: 100%;
-  opacity: 0.4;
+  opacity: 0.72;
   transition: opacity 0.5s;
   pointer-events: none;
 }
@@ -75,8 +78,9 @@ h1, h2 {
   bottom: 0;
   left: 0;
   right: 0;
-  padding: 48px 24px 20px;
-  background: linear-gradient(transparent, rgba(0, 0, 0, 0.85) 50%);
+  padding: 36px 24px 20px;
+  /* A base plate, not a curtain: the artwork keeps the top half of the card. */
+  background: linear-gradient(transparent, rgba(0, 0, 0, 0.92) 55%);
   z-index: 1;
 }
 
@@ -84,6 +88,8 @@ h1, h2 {
   font-size: clamp(16px, 2vw, 22px);
   letter-spacing: 0.06em;
   margin-bottom: 4px;
+  color: rgba(255, 255, 255, 0.82);
+  transition: color 0.35s;
 }
 
 .card-info .tagline {
@@ -102,22 +108,32 @@ h1, h2 {
   font-size: clamp(10px, 1vw, 12px);
   padding: 2px 8px;
   border-radius: 3px;
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  color: rgba(255, 255, 255, 0.4);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: rgba(255, 255, 255, 0.55);
 }
 
+/* This is the one place on the page worth spending contrast. Six dark cards
+   with a 1px border shift between them give the reader nothing to aim at. */
 @media (hover: hover) {
   .card:hover {
-    transform: scale(1.02);
-    border-color: rgba(0, 204, 204, 0.3);
-    box-shadow: 0 4px 30px rgba(0, 204, 204, 0.08);
+    transform: translateY(-3px);
+    border-color: rgba(0, 204, 204, 0.55);
+    box-shadow: 0 10px 40px rgba(0, 204, 204, 0.16);
   }
+
+  .card:hover canvas { opacity: 1; }
+  .card:hover .card-info h2 { color: #fff; }
 }
 
+/* Set by the idle autoplay and by scroll-into-view on touch. Opacity lives
+   here rather than inline in gallery.js so hover and active can't fight. */
 .card.active {
-  border-color: rgba(0, 204, 204, 0.25);
-  box-shadow: 0 0 20px rgba(0, 204, 204, 0.06);
+  border-color: rgba(0, 204, 204, 0.35);
+  box-shadow: 0 0 24px rgba(0, 204, 204, 0.1);
 }
+
+.card.active canvas { opacity: 1; }
+.card.active .card-info h2 { color: #fff; }
 
 footer {
   text-align: center;
@@ -176,5 +192,15 @@ footer {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .card canvas, #bg-canvas { display: none; }
+  /* The thumbnails still render a single still frame, so they stay visible.
+     Only the page-wide echo and the transitions are dropped. */
+  #bg-canvas { display: none; }
+
+  .card,
+  .card canvas,
+  .card-info h2 {
+    transition: none;
+  }
+
+  .card:hover { transform: none; }
 }

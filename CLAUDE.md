@@ -4,14 +4,17 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-Mark Dingwall's personal website ([axionatic.github.io](https://axionatic.github.io)), with portfolio pieces, creative coding sketches, and [BitBrush](https://github.com/Axionatic/BitBrush) - a multiplayer pixel canvas powered by Spring Boot. A static site — no build step, no package manager, no bundler. Open any `index.html` directly in a browser or use a local server (e.g. `python3 -m http.server`). Deploy by pushing to `main` (GitHub Pages). Live at [mark.dingwall.com.au](https://mark.dingwall.com.au)
+Mark Dingwall's personal website ([mark-dingwall.github.io](https://mark-dingwall.github.io)), with portfolio pieces, creative coding sketches, and [BitBrush](https://github.com/mark-dingwall/BitBrush) - a multiplayer pixel canvas powered by Spring Boot. A static site — no build step, no package manager, no bundler. Open any `index.html` directly in a browser or use a local server (e.g. `python3 -m http.server`). Deploy by pushing to `main` (GitHub Pages). Live at [mark.dingwall.com.au](https://mark.dingwall.com.au)
 
 ## Architecture
 
 ### Homepage (`index.html` + `index.js` + `background.js` + `fireflies.js`)
 
 - 2x2 quad navigation system with a WebGL shader background
-- Default view is **TR (top-right)** containing the hero ("Mark Dingwall", "Creative coder")
+- Default view is **TR (top-right)** containing the hero: name, then `.hero-role`
+  ("Backend engineer · Melbourne"), then `.hero-hint` with the navigation
+  instruction. The role line states who this is before the page explains how to
+  move around it; the hint is deliberately the quietest of the three.
 - Quad layout (ring order: TR→BR→BL→TL):
   ```
   TL(3): BitBrush     |  TR(0): Hero  ← default view
@@ -22,6 +25,7 @@ Mark Dingwall's personal website ([axionatic.github.io](https://axionatic.github
 - `background.js`: WebGL shader with per-quad noise textures and colour palettes, gravitational lensing effect, smooth texture/palette transitions between quads
 - `fireflies.js`: overlay particle effect, colour-matched to the current shader palette
 - `index.js`: quad navigation state machine — scroll wheel (lerp), arrow keys (ease-in-out), corner markers, boundary bounce
+- `index.js` also syncs `/favicon.svg` to the active quad by swapping the `<link rel="icon">` href to a generated data URI (same 2x2 rect layout as the static file). Arrow keys, marker clicks, and swipes (all drive the same timed `arrowAnim`) commit the favicon only once that animation finishes; scroll wheel has no discrete arrival event, so it commits once the lerp is 2/3 of the way into whichever quad it's heading toward. This is homepage-only — every other page keeps the static default favicon
 - Each quadrant's content is wrapped in `<div class="quadrant-content">` with frosted-glass styling (`backdrop-filter: blur`, with mobile fallback to opaque)
 - Fonts: `VT323` (body), `Major Mono Display` (headings) from Google Fonts
 
@@ -79,9 +83,28 @@ Note the trailing space in `m` — it's intentional.
 5. For p5.js sketches, follow the pattern in `sketches/forest/index.html` (zero inline CSS needed)
 6. For Three.js sketches, follow `sketches/cubeworms/index.html` (small inline overrides for canvas/body)
 
+### Portfolio gallery (`portfolio/index.html` + `portfolio/gallery.js`)
+
+- One `<canvas>` per card, driven by a renderer registered in `RENDERERS` as
+  `{ init, render }`. An optional third key, `bg`, supplies a sparser variant
+  used only by the full-page echo canvas — needed when a renderer fills its
+  frame edge-to-edge and would otherwise tile a texture across the whole page.
+- Card artwork **rests at the resolved end of the morph** (`drawStatic` renders
+  `morph = 1`). Resting at the chaos end left every idle card showing noise.
+- Resting/active opacity lives in `portfolio-gallery.css` (`.card canvas`,
+  `.card.active canvas`), not inline in JS, so hover and active can't fight.
+- Renderers must compose within roughly the **top 55%** of the card. `.card-info`
+  is a gradient plate over the bottom, so anything below that is obscured.
+- The echo canvas is gated to viewports >= `BG_MIN_WIDTH` (769px). The
+  touch/desktop branch is chosen once at load, so without the gate a desktop
+  window dragged narrow keeps painting it over a single-column grid.
+- `prefers-reduced-motion` still draws one still frame per card; only the
+  animation loop, the echo canvas, and CSS transitions are withheld.
+
 ## Conventions
 
 - Black background (`#000`), white text (`#fff`), cyan links (`#0cc`), visited links magenta (`#c0c`)
+- Every page links `/favicon.svg` — the 2x2 quad with the top-right lit, matching the homepage's default view. On the homepage this is swapped at runtime to track the active quad (see Homepage section above)
 - The SimplexNoise library is copied inline into JS files that need it (no import/module system)
 - `forest.js` uses p5.js global mode; `microbes.js` / `bioluminescence.js` use the same pattern
 - All constants are defined at the top of each sketch file with `ALL_CAPS` names

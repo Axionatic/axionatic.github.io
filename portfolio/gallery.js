@@ -72,9 +72,10 @@ const JN_C1 = [[0,204,204],[0,170,255],[0,136,255],[0,238,170],[68,221,255]];
 function initJointly(w, h) {
   const rng = alea('jointly-th');
   const s = Math.min(w, h);
+  // Flattened into the top half — the caption plate owns the bottom ~45%.
   const centers = [
-    [0.22*w, 0.28*h], [0.78*w, 0.28*h], [0.50*w, 0.50*h],
-    [0.22*w, 0.72*h], [0.78*w, 0.72*h],
+    [0.22*w, 0.22*h], [0.78*w, 0.22*h], [0.50*w, 0.33*h],
+    [0.22*w, 0.44*h], [0.78*w, 0.44*h],
   ];
   const particles = [];
   for (let g = 0; g < 5; g++) {
@@ -174,7 +175,7 @@ function renderOasis(ctx, w, h, morph, time, state) {
   ctx.fillStyle = rgbStr(lerpRgb(OA_BG0, OA_BG1, sm));
   ctx.fillRect(0, 0, w, h);
 
-  const beltY = h * 0.62, beltH = h * 0.04;
+  const beltY = h * 0.42, beltH = h * 0.04;
   const bw = w * 0.09, bh = h * 0.16;
 
   // Belt
@@ -240,11 +241,12 @@ const GF_ACCENT = [0, 204, 204];
 
 function initGuestflow(w, h) {
   const rng = alea('guestflow-th');
+  // The hub sat at 0.62h with its lower half under the caption plate.
   const sites = [
-    { x: 0.20, y: 0.32, gf: false },
-    { x: 0.52, y: 0.22, gf: false },
-    { x: 0.82, y: 0.32, gf: false },
-    { x: 0.48, y: 0.62, gf: true },
+    { x: 0.20, y: 0.20, gf: false },
+    { x: 0.52, y: 0.13, gf: false },
+    { x: 0.82, y: 0.20, gf: false },
+    { x: 0.48, y: 0.42, gf: true },
   ];
   const tris = [];
   for (let i = 0; i < 10; i++) {
@@ -341,7 +343,8 @@ function initMystery(w, h) {
         cx: rng() * w * 0.7 + w * 0.15,
         cy: rng() * h * 0.7 + h * 0.15,
         sx: (0.25 + t * 0.25) * w,
-        sy: (0.28 + i * 0.13) * h,
+        // Sorted rows stay above the caption plate, which owns the bottom ~45%.
+        sy: (0.22 + i * 0.075) * h,
         ph: rng() * 6.28,
         sp: 0.3 + rng() * 0.5,
         ci: Math.floor(rng() * 5),
@@ -358,7 +361,7 @@ function renderMystery(ctx, w, h, morph, time, state) {
   ctx.fillStyle = rgbStr(lerpRgb(MY_BG0, MY_BG1, sm));
   ctx.fillRect(0, 0, w, h);
 
-  const r = s * 0.04;
+  const r = s * 0.033;
   for (let i = 0; i < state.shapes.length; i++) {
     const sh = state.shapes[i];
     const drift = (1 - sm) * 12;
@@ -391,9 +394,9 @@ function renderMystery(ctx, w, h, morph, time, state) {
     ctx.textAlign = 'center';
     ctx.font = (s * 0.05) + 'px monospace';
     ctx.fillStyle = 'rgba(255,255,255,' + la + ')';
-    ctx.fillText('\u25CF', 0.25 * w, 0.18 * h);
-    ctx.fillText('\u25B2', 0.50 * w, 0.18 * h);
-    ctx.fillText('\u25A0', 0.75 * w, 0.18 * h);
+    ctx.fillText('\u25CF', 0.25 * w, 0.12 * h);
+    ctx.fillText('\u25B2', 0.50 * w, 0.12 * h);
+    ctx.fillText('\u25A0', 0.75 * w, 0.12 * h);
   }
 }
 
@@ -502,17 +505,21 @@ class Thumbnail {
     this.drawStatic();
   }
 
+  /** The resting frame, drawn at the resolved end of the morph — the
+   *  composition each renderer is built to arrive at. Resting at the chaos end
+   *  instead left every idle card showing scattered noise. */
   drawStatic() {
     if (!this.state) return;
-    RENDERERS[this.projectId].render(this.ctx, this.w, this.h, 0, 0, this.state);
-    this.canvas.style.opacity = '0.4';
+    RENDERERS[this.projectId].render(this.ctx, this.w, this.h, 1, 0, this.state);
   }
 
   activate() {
     if (this.active) return;
     this.active = true;
-    this.elapsed = 0;
-    this.canvas.style.opacity = '1';
+    // Start right where the order hold ends, so the first frame still matches
+    // the resting composition (no snap) but the fade to chaos begins at once
+    // instead of waiting out the full order hold.
+    this.elapsed = PH_CHAOS + PH_MORPH + PH_ORDER;
     this.card.classList.add('active');
     activeCount++;
     if (activeCount === 1) startLoop();
@@ -559,8 +566,13 @@ let bgCtx = null;
 let bgW = 0, bgH = 0;
 let bgState = null;
 let bgActiveThumb = null;
+let bgEnabled = false;
 
 const BG_SCALE = 2.5; // render at reduced logical size so shapes appear larger
+// Below the gallery's 768px breakpoint the grid is single-column and the echo
+// swamps it. The touch/desktop branch is chosen once at load, so a desktop
+// window dragged narrow would otherwise keep painting it.
+const BG_MIN_WIDTH = 769;
 
 function initBgCanvas() {
   bgCanvas = document.getElementById('bg-canvas');
@@ -571,6 +583,15 @@ function initBgCanvas() {
 
 function resizeBgCanvas() {
   if (!bgCanvas) return;
+  bgEnabled = window.innerWidth >= BG_MIN_WIDTH;
+  bgCanvas.style.display = bgEnabled ? '' : 'none';
+  if (!bgEnabled) {
+    // Drop the mirrored state so nothing stale is held while gated off.
+    bgActiveThumb = null;
+    bgState = null;
+    bgCanvas.style.opacity = '0';
+    return;
+  }
   const dpr = window.devicePixelRatio || 1;
   bgW = window.innerWidth / BG_SCALE;
   bgH = window.innerHeight / BG_SCALE;
@@ -604,7 +625,7 @@ function mainLoop(ts) {
   }
 
   // Background canvas: mirror whichever thumbnail is active
-  if (bgCanvas) {
+  if (bgCanvas && bgEnabled) {
     if (active && active !== bgActiveThumb) {
       bgActiveThumb = active;
       bgState = RENDERERS[active.projectId].init(bgW, bgH);
@@ -620,7 +641,8 @@ function mainLoop(ts) {
       bgCtx.save();
       bgCtx.clearRect(0, 0, bgW, bgH);
       bgCtx.globalAlpha = s.opacity;
-      RENDERERS[bgActiveThumb.projectId].render(bgCtx, bgW, bgH, s.morph, bgActiveThumb.elapsed, bgState);
+      const r = RENDERERS[bgActiveThumb.projectId];
+      (r.bg || r.render)(bgCtx, bgW, bgH, s.morph, bgActiveThumb.elapsed, bgState);
       bgCtx.restore();
     }
   }
@@ -715,7 +737,7 @@ function playNextIdle() {
 
 // ── Init ───────────────────────────────────────────────────────────────────
 function initGallery() {
-  if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
   const titleEl = document.getElementById('title-text');
   if (titleEl) {
@@ -732,6 +754,15 @@ function initGallery() {
   const cards = document.querySelectorAll('.card[data-project]');
   for (let i = 0; i < cards.length; i++) {
     thumbs.push(new Thumbnail(cards[i]));
+  }
+
+  // Reduced motion still gets the artwork — one settled frame per card, drawn
+  // once. Only the animation is withheld, not the design.
+  if (reducedMotion) {
+    window.addEventListener('resize', () => {
+      for (let i = 0; i < thumbs.length; i++) thumbs[i].resize();
+    });
+    return;
   }
 
   const isTouch = window.matchMedia('(hover: none)').matches;
