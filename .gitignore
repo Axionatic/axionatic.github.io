@@ -9,4 +9,5 @@ e2e/test-results/
 e2e/.cache/
 test-results/
 .superpowers/
+.worktrees/
 docs/
