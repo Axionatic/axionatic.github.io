@@ -32,26 +32,13 @@ const SPECIES = [
 const SPECIES_COUNT = SPECIES.length;
 
 // -- Vision scoping ----------------------------------------------------------
-const VISION_START = 0.34;       // scroll progress where the vision box appears
-const VISION_FULL = 0.62;        // fully scoped by here
 const VISION_RADIUS = 5;         // cells visible around the observed entity
 const OUTSIDE_DIM = 0.16;        // brightness of redacted cells when fully scoped
-const OBSERVER_DRIFT = 0.9;      // cells per second the observer wanders
-// The observer roams a band (fractions of the grid) chosen so its vision box
-// never sits under a panel. The box spans VISION_RADIUS cells either side, so
-// the band has to leave that much margin. The panels move at 800px — see the
-// matching breakpoint in paralife.css — so the safe region moves with them:
-//   wide:   narrative sits left, HUD upper right ending ~0.51H -> roam low right
-//   narrow: narrative is centred ~0.52H, HUD is bottom centre -> roam upper middle
-const PANEL_BREAKPOINT = 800;
-const OBSERVER_BAND_WIDE   = { x0: 0.50, x1: 0.82, y0: 0.66, y1: 0.82 };
-const OBSERVER_BAND_NARROW = { x0: 0.30, x1: 0.70, y0: 0.26, y1: 0.42 };
 
 // -- Scroll ------------------------------------------------------------------
 const SCRUB_SMOOTHING = 0.8;
 const RESEED_DEBOUNCE_MS = 150;  // wait for a window drag to settle before reseeding
 const SCROLL_HINT_THRESHOLD = 0.03;
-const NARRATIVE_HOLD = 0.06;     // fraction of the runway each line lingers
 const WORLD_FLOOR = 0.18;        // how much world still shows behind the tech rows
 
 const FRAME_DT = 0.016;
@@ -65,15 +52,12 @@ let stepTimer = 0;
 let time = 0;
 let morphProgress = 0;
 let techFade = 1;                // 1 while the world is on show, 0 once tech rows take over
-let observerX = 0, observerY = 0;
-let observerVX = 0, observerVY = 0;
-let observerBand = OBSERVER_BAND_WIDE;
 let reseedTimer = null;
 let rng;
 
-let progressBar, scrollHint, headerPanelEl, narrativePanelEl;
+let progressBar, scrollHint, headerPanelEl, narrativePanelEl, openingVisualsEl;
 let titleOverlayEl;
-let narrativeLines = [];
+let openingController;
 
 // ---------------------------------------------------------------------------
 // World helpers
@@ -144,10 +128,6 @@ function seedWorld() {
   // Let the arms wind before the first frame, so the page never opens on noise.
   for (let i = 0; i < SETTLE_STEPS; i++) step();
 
-  observerX = cols * (observerBand.x0 + observerBand.x1) / 2;
-  observerY = rows * (observerBand.y0 + observerBand.y1) / 2;
-  observerVX = (rng() - 0.5) * OBSERVER_DRIFT;
-  observerVY = (rng() - 0.5) * OBSERVER_DRIFT;
 }
 
 /** One automaton step: a cell falls to the species that eats it, once enough
@@ -175,33 +155,25 @@ function step() {
   next = swap;
 }
 
-function moveObserver(dt) {
-  observerX += observerVX * dt;
-  observerY += observerVY * dt;
-
-  // Bounce inside the band rather than wrapping, so the vision box never
-  // drifts under the narrative text or the header panel.
-  const xMin = cols * observerBand.x0, xMax = cols * observerBand.x1;
-  const yMin = rows * observerBand.y0, yMax = rows * observerBand.y1;
-
-  if (observerX < xMin) { observerX = xMin; observerVX = Math.abs(observerVX); }
-  if (observerX > xMax) { observerX = xMax; observerVX = -Math.abs(observerVX); }
-  if (observerY < yMin) { observerY = yMin; observerVY = Math.abs(observerVY); }
-  if (observerY > yMax) { observerY = yMax; observerVY = -Math.abs(observerVY); }
-
-  // Gentle wander so the vision box never travels in a straight line.
-  observerVX += (rng() - 0.5) * dt * 0.6;
-  observerVY += (rng() - 0.5) * dt * 0.6;
-  observerVX = clamp(observerVX, -OBSERVER_DRIFT, OBSERVER_DRIFT);
-  observerVY = clamp(observerVY, -OBSERVER_DRIFT, OBSERVER_DRIFT);
-}
-
 // ---------------------------------------------------------------------------
 // Rendering
 // ---------------------------------------------------------------------------
 
 function visionAmount() {
-  return smoothstep(clamp01((morphProgress - VISION_START) / (VISION_FULL - VISION_START)));
+  const enter = smoothstep(clamp01((morphProgress - 0.13) / 0.09));
+  const leave = smoothstep(clamp01((morphProgress - 0.56) / 0.12));
+  return enter * (1 - leave);
+}
+
+function getNarrativeObserverCell() {
+  const geometry = window.ParalifeOpening.deterministicObserverGeometry(
+    morphProgress,
+    { width: W, height: H },
+  );
+  return {
+    x: clamp(Math.floor((geometry.entity.x - offsetX) / cellPx), 0, cols - 1),
+    y: clamp(Math.floor((geometry.entity.y - offsetY) / cellPx), 0, rows - 1),
+  };
 }
 
 function drawWorld() {
@@ -209,8 +181,9 @@ function drawWorld() {
   // The world only recedes once the tech rows start arriving — driven by the
   // tech-content trigger, not the runway, so there is no blank stretch between.
   const globalFade = lerp(WORLD_FLOOR, 1, techFade);
-  const ox = Math.round(observerX);
-  const oy = Math.round(observerY);
+  const observer = getNarrativeObserverCell();
+  const ox = observer.x;
+  const oy = observer.y;
 
   ctx.fillStyle = '#000';
   ctx.fillRect(0, 0, W, H);
@@ -242,8 +215,6 @@ function drawWorld() {
   }
 
   drawVignette();
-
-  if (vision > 0.02) drawVisionBox(ox, oy, vision * globalFade);
 }
 
 /** Radial darkening so the header and side panels always have contrast. */
@@ -256,54 +227,6 @@ function drawVignette() {
   g.addColorStop(1, 'rgba(0,0,0,' + VIGNETTE + ')');
   ctx.fillStyle = g;
   ctx.fillRect(0, 0, W, H);
-}
-
-function drawVisionBox(ox, oy, strength) {
-  const half = VISION_RADIUS + 0.5;
-  const px = offsetX + (ox - half) * cellPx;
-  const py = offsetY + (oy - half) * cellPx;
-  const span = (half * 2) * cellPx;
-  const pulse = 0.55 + 0.45 * Math.sin(time * 2.2);
-
-  ctx.save();
-  ctx.strokeStyle = 'rgba(255,255,255,' + (0.28 * strength) + ')';
-  ctx.lineWidth = 1;
-  ctx.setLineDash([4, 4]);
-  ctx.strokeRect(px, py, span, span);
-  ctx.restore();
-
-  // The observed entity itself.
-  ctx.fillStyle = 'rgba(255,255,255,' + (0.85 * strength * pulse) + ')';
-  ctx.fillRect(offsetX + ox * cellPx - 1, offsetY + oy * cellPx - 1, cellPx + 1, cellPx + 1);
-
-  if (strength > 0.55) {
-    ctx.fillStyle = 'rgba(255,255,255,' + (0.4 * strength) + ')';
-    ctx.font = '11px "Share Tech Mono", monospace';
-    ctx.fillText('one entity — one socket', px, py - 8);
-  }
-}
-
-// ---------------------------------------------------------------------------
-// Narrative
-// ---------------------------------------------------------------------------
-
-function updateNarrative() {
-  const count = narrativeLines.length;
-  if (!count) return;
-
-  // Each line owns an equal slice of the first 80% of the runway.
-  const span = 0.8 / count;
-
-  for (let i = 0; i < count; i++) {
-    const start = i * span;
-    const inT = smoothstep(clamp01((morphProgress - start) / (span * 0.35)));
-    const outStart = start + span * (0.35 + NARRATIVE_HOLD);
-    const outT = smoothstep(clamp01((morphProgress - outStart) / (span * 0.4)));
-    const opacity = inT * (1 - outT);
-
-    narrativeLines[i].style.opacity = opacity;
-    narrativeLines[i].style.transform = 'translateY(' + lerp(18, -18, inT * 0.5 + outT * 0.5) + 'px)';
-  }
 }
 
 // ---------------------------------------------------------------------------
@@ -319,9 +242,13 @@ function render() {
     step();
   }
 
-  moveObserver(FRAME_DT);
   drawWorld();
-  updateNarrative();
+  openingController.render({
+    progress: morphProgress,
+    techFade,
+    viewport: { width: W, height: H },
+    ambientTime: time,
+  });
 
   requestAnimationFrame(render);
 }
@@ -347,8 +274,6 @@ function resizeCanvas() {
  *  seedWorld() runs SETTLE_STEPS full-grid passes — tens of milliseconds on a
  *  large display — so it must not run on every resize event. */
 function rebuildWorld() {
-  observerBand = W <= PANEL_BREAKPOINT ? OBSERVER_BAND_NARROW : OBSERVER_BAND_WIDE;
-
   cellPx = W < MOBILE_BREAKPOINT ? CELL_PX_MOBILE : CELL_PX;
   const nextCols = Math.ceil(W / cellPx) + 1;
   const nextRows = Math.ceil(H / cellPx) + 1;
@@ -378,8 +303,9 @@ function init() {
   scrollHint = document.getElementById('scroll-hint');
   headerPanelEl = document.getElementById('header-panel');
   narrativePanelEl = document.getElementById('opening-story');
+  openingVisualsEl = document.getElementById('opening-visuals');
   titleOverlayEl = document.getElementById('title-overlay');
-  narrativeLines = Array.prototype.slice.call(document.querySelectorAll('.opening-line'));
+  openingController = window.ParalifeOpening.create(narrativePanelEl);
 
   resize();
   // The canvas follows the window immediately; the expensive reseed waits for
@@ -427,6 +353,7 @@ function init() {
 
         const vis = p >= 1 ? 'hidden' : 'visible';
         narrativePanelEl.style.visibility = vis;
+        openingVisualsEl.style.visibility = vis;
 
         // Once fully scrolled in, let the header scroll away with the content.
         if (p >= 1) {

@@ -40,3 +40,44 @@ test('opening state uses unequal beats and scroll-bound client phases', async ({
   expect((await openingState(page, 0.96)).clientPhase).toBe('recovered');
   expect((await openingState(page, 0.86)).clientPhase).toBe('reconnecting');
 });
+
+test('first three beats morph through one shared frame and reverse cleanly', async ({ page }) => {
+  await navigateToPortfolioPage(page, PARALIFE_PATH);
+
+  await scrollToProgress(page, 0.10);
+  const fieldStart = await page.locator('.opening-line[data-beat="world"]').evaluate(
+    (el) => getComputedStyle(el).transform,
+  );
+  await scrollToProgress(page, 0.17);
+  const fieldCompressed = await page.locator('.opening-line[data-beat="world"]').evaluate(
+    (el) => getComputedStyle(el).transform,
+  );
+  expect(fieldCompressed).not.toBe(fieldStart);
+
+  for (const [progress, beat] of [[0.10, 'world'], [0.30, 'perception'], [0.50, 'emergence']] as const) {
+    await scrollToProgress(page, progress);
+    await expect(page.locator('#opening-story')).toHaveAttribute('data-active-beat', beat);
+    await expect(page.locator(`.opening-line[data-beat="${beat}"]`)).toHaveCSS('opacity', '1');
+  }
+
+  await scrollToProgress(page, 0.30);
+  const before = await page.locator('#morph-frame').evaluate((el) => ({
+    x: el.getAttribute('x'), y: el.getAttribute('y'),
+    width: el.getAttribute('width'), height: el.getAttribute('height'),
+  }));
+  await page.waitForTimeout(500);
+  const sameScrollLater = await page.locator('#morph-frame').evaluate((el) => ({
+    x: el.getAttribute('x'), y: el.getAttribute('y'),
+    width: el.getAttribute('width'), height: el.getAttribute('height'),
+  }));
+  expect(sameScrollLater).toEqual(before);
+  await scrollToProgress(page, 0.50);
+  await expect(page.locator('#morph-frame')).toHaveCSS('opacity', '1');
+  await expect(page.locator('#legend-layer')).toHaveCSS('opacity', '1');
+  await scrollToProgress(page, 0.30);
+  const after = await page.locator('#morph-frame').evaluate((el) => ({
+    x: el.getAttribute('x'), y: el.getAttribute('y'),
+    width: el.getAttribute('width'), height: el.getAttribute('height'),
+  }));
+  expect(after).toEqual(before);
+});
