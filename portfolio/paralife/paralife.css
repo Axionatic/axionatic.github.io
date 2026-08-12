@@ -1,0 +1,315 @@
+/* Paralife — page-specific styles.
+   Load order: portfolio.css → portfolio-components.css → this file. */
+
+#runway { height: 500vh; }
+
+/* Clears the fixed header panel once it settles over the tech rows. */
+#tech-content { padding-top: 72px; }
+
+#header-panel { padding: 20px 32px; width: min(560px, 60vw); }
+
+#title-overlay {
+  display: block;
+  margin: 0 auto;
+  font-family: 'Major Mono Display', monospace;
+  font-size: clamp(28px, 5vw, 52px);
+  color: #0cc;
+  letter-spacing: 0.12em;
+  line-height: 1.2;
+}
+
+#subtitle {
+  font-size: clamp(16px, 2vw, 22px);
+  color: rgba(255, 255, 255, 0.3);
+  margin-top: 4px;
+  letter-spacing: 0.12em;
+}
+
+/* -- Narrative lines --------------------------------------------------- */
+#opening-story {
+  position: fixed;
+  left: 28%;
+  top: 44%;
+  transform: translateX(-50%);
+  z-index: 10;
+  pointer-events: none;
+  width: min(520px, 46vw);
+  transition: opacity 0.4s ease;
+}
+
+.opening-line {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  text-align: center;
+  font-size: clamp(18px, 2.5vw, 28px);
+  pointer-events: none;
+  opacity: 0;
+  line-height: 1.4;
+  will-change: transform, opacity;
+  text-shadow: 0 2px 20px rgba(0, 0, 0, 0.85);
+}
+
+.opening-line:nth-child(1) { color: rgba(255, 170, 90, 0.85); }
+.opening-line:nth-child(2) { color: rgba(190, 140, 255, 0.85); }
+.opening-line:nth-child(3) { color: rgba(0, 220, 210, 0.88); }
+
+/* -- Row 1: architecture SVG ------------------------------------------- */
+.arch-svg { max-width: 380px; }
+
+.arch-label-sm {
+  fill: rgba(0, 204, 204, 0.6);
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 13px;
+  text-anchor: middle;
+  dominant-baseline: central;
+}
+
+.arch-node-vt {
+  fill: rgba(190, 140, 255, 0.07);
+  stroke: rgba(190, 140, 255, 0.35);
+}
+
+.row-title-hero { align-self: end; }
+
+/* -- Row 2: carrier pinning -------------------------------------------- */
+.pin-compare {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  width: 100%;
+  max-width: 400px;
+}
+
+.pin-card {
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  padding: 14px 16px;
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.pin-card.pin-bad  { border-color: rgba(255, 102, 51, 0.32); }
+.pin-card.pin-good { border-color: rgba(0, 234, 170, 0.32); }
+
+.pin-code {
+  font-size: 14px;
+  color: rgba(255, 255, 255, 0.85);
+  letter-spacing: 0.04em;
+}
+
+.pin-track {
+  position: relative;
+  margin: 12px 0 10px;
+  height: 30px;
+  border-radius: 15px;
+  background: rgba(255, 255, 255, 0.05);
+  display: flex;
+  align-items: center;
+}
+
+.pin-carrier {
+  font-size: 11px;
+  letter-spacing: 0.14em;
+  color: rgba(255, 255, 255, 0.3);
+  padding-left: 14px;
+}
+
+.pin-vt {
+  position: absolute;
+  top: 3px;
+  height: 24px;
+  line-height: 24px;
+  padding: 0 12px;
+  border-radius: 12px;
+  font-size: 12px;
+  letter-spacing: 0.1em;
+}
+
+.pin-vt-stuck {
+  right: 8px;
+  background: rgba(255, 102, 51, 0.18);
+  color: #f63;
+  border: 1px solid rgba(255, 102, 51, 0.45);
+  animation: pin-stuck 2.4s ease-in-out infinite;
+}
+
+.pin-vt-free {
+  right: 8px;
+  background: rgba(0, 234, 170, 0.15);
+  color: #0ea;
+  border: 1px solid rgba(0, 234, 170, 0.45);
+  animation: pin-free 2.4s ease-in-out infinite;
+}
+
+@keyframes pin-stuck {
+  0%, 100% { transform: translateX(0); }
+  50%      { transform: translateX(-3px); }
+}
+
+@keyframes pin-free {
+  0%       { transform: translateX(0); opacity: 1; }
+  45%      { transform: translateX(-180px); opacity: 0.15; }
+  55%      { transform: translateX(-180px); opacity: 0.15; }
+  100%     { transform: translateX(0); opacity: 1; }
+}
+
+.pin-verdict {
+  font-size: 13px;
+  letter-spacing: 0.03em;
+}
+
+.pin-verdict-bad  { color: rgba(255, 130, 90, 0.9); }
+.pin-verdict-good { color: rgba(0, 234, 170, 0.9); }
+
+.pin-note {
+  margin-top: 5px;
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.34);
+}
+
+/* -- Row 3: backpressure flow ------------------------------------------ */
+.flow-svg {
+  width: 100%;
+  max-width: 440px;
+  height: auto;
+}
+
+.flow-node {
+  fill: rgba(0, 204, 204, 0.08);
+  stroke: rgba(0, 204, 204, 0.4);
+  stroke-width: 1.5;
+}
+
+.flow-fork-node { stroke: rgba(0, 204, 204, 0.6); }
+
+.flow-fork-glow { animation: fork-glow 2s ease-in-out infinite; }
+
+.flow-label {
+  fill: #0cc;
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 16px;
+  text-anchor: middle;
+  dominant-baseline: central;
+}
+
+.flow-sublabel {
+  fill: rgba(255, 255, 255, 0.4);
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 10px;
+  text-anchor: middle;
+  dominant-baseline: central;
+}
+
+.flow-path {
+  stroke: rgba(0, 204, 204, 0.45);
+  stroke-width: 2;
+  stroke-dasharray: 6 5;
+  animation: flow-dash 1.5s linear infinite;
+  fill: none;
+}
+
+@keyframes flow-dash {
+  to { stroke-dashoffset: -11; }
+}
+
+@keyframes fork-glow {
+  0%, 100% { opacity: 0.25; }
+  50%      { opacity: 1; }
+}
+
+.flow-branch-ok    { stroke: rgba(0, 234, 170, 0.6); }
+.flow-branch-retry { stroke: rgba(255, 102, 51, 0.55); }
+
+.flow-branch-label {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 12px;
+  dominant-baseline: central;
+}
+
+.flow-branch-label-ok {
+  fill: rgba(0, 234, 170, 0.75);
+  text-anchor: middle;
+}
+
+.flow-branch-label-retry {
+  fill: rgba(255, 130, 90, 0.75);
+  text-anchor: middle;
+}
+
+/* -- Row 4: golden-trace equivalence ----------------------------------- */
+.trace-compare {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  max-width: 420px;
+}
+
+.trace-side {
+  border: 1px solid rgba(0, 204, 204, 0.25);
+  border-radius: 12px;
+  padding: 14px 10px;
+  text-align: center;
+  background: rgba(0, 204, 204, 0.04);
+}
+
+.trace-label {
+  font-size: 11px;
+  letter-spacing: 0.12em;
+  color: rgba(255, 255, 255, 0.38);
+}
+
+.trace-hash {
+  margin: 8px 0 6px;
+  font-size: 16px;
+  color: #0cc;
+  word-break: break-all;
+}
+
+.trace-dim { color: rgba(0, 204, 204, 0.45); }
+
+.trace-sub {
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.34);
+}
+
+.trace-match {
+  font-size: 26px;
+  color: rgba(0, 234, 170, 0.9);
+  animation: pulse-match 2s ease-in-out infinite;
+}
+
+.trace-footer {
+  grid-column: 1 / -1;
+  text-align: center;
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  color: rgba(255, 255, 255, 0.32);
+}
+
+/* -- Responsive -------------------------------------------------------- */
+@media (max-width: 800px) {
+  #opening-story {
+    left: 50%;
+    top: 52%;
+    width: min(520px, 90vw);
+  }
+
+  .trace-compare {
+    grid-template-columns: 1fr;
+  }
+
+  .trace-match { transform: rotate(90deg); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pin-vt-stuck,
+  .pin-vt-free,
+  .flow-path,
+  .flow-fork-glow,
+  .trace-match {
+    animation: none;
+  }
+}
