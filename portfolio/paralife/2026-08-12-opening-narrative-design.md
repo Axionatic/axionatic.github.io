@@ -44,17 +44,23 @@ Purpose: connect simple local rules to large-scale emergent patterns without tur
 
 Any displayed population balance must be calculated from the running browser simulation. It must not imply production telemetry or benchmark evidence.
 
+The balance is optional and should be omitted unless it materially improves the composition. Under `prefers-reduced-motion: reduce`, omit the changing balance and retain only the static species names and cyclical relationship.
+
 ### 4. Client/server constellation
 
 The state frame expands or resolves into an authoritative server node surrounded by numerous small client nodes. Paths or pulses show real-time server-to-client communication. The fourth line sits to the left on desktop and above the illustration on mobile.
 
-One or two clients visibly lag during a subtle repeating sequence:
+One or two clients visibly lag during a scroll-bound sequence. Its phase is a pure function of normalized runway progress rather than wall-clock time:
 
 1. their incoming pulse slows or stops;
 2. their connection changes to a warning state;
 3. the link drops or fades while the server and healthy clients continue;
 4. a reconnect path appears;
-5. the client returns to its species colour, indicating recovery to the same entity.
+5. the same client node recovers and returns to its species colour.
+
+Scrolling backward reverses these phases in order. Ambient pulses among healthy clients may remain time-driven, but they do not determine failure or recovery state.
+
+The affected node must retain a stable position and identity marker (for example, a small ring, glyph, or short ID) throughout lag, disconnect, and recovery. Warning and disconnected treatments apply to that same marker, and the reconnect path returns to it. Species colour communicates restored health; it does not establish identity. A concise `same entity restored` label may reinforce the recovery event.
 
 This is a conceptual illustration of the implemented bounded-queue, stalled-session, grace-window, and resume-token behaviour. It must not be labelled as live production telemetry. The server cadence may be labelled `2 Hz`; unsupported scale claims must not appear.
 
@@ -74,6 +80,15 @@ Elements with meaningful shared geometry should morph continuously. A short loca
 
 Narrative lines should have readable hold periods between transitions. No two full lines should compete at normal scroll positions.
 
+Do not reuse the current equal-slice narrative calculation. Begin with a `500vh` runway and explicit, unequal beat ranges:
+
+- beat 1: `0.00–0.18`;
+- beat 2: `0.18–0.40`;
+- beat 3: `0.40–0.62`;
+- beat 4: `0.62–1.00`.
+
+Beat 4 deliberately owns the largest range so its layout morph and five failure/recovery phases have room to read. Adjust the total runway height only if representative browser testing shows the phases remain compressed; preserve the relative emphasis on beat 4.
+
 ## Responsive behaviour
 
 Desktop:
@@ -92,10 +107,10 @@ Mobile and narrow tablet:
 ## Motion and accessibility
 
 - Respect `prefers-reduced-motion`.
-- In reduced-motion mode, preserve all four semantic states but replace geometric morphs and repeated pulse/recovery cycles with short opacity transitions and static representative states.
+- In reduced-motion mode, preserve all four semantic states but replace geometric morphs with short opacity transitions. Show static representative stalled and recovered clients in beat 4; do not animate the failure/recovery lifecycle.
 - Decorative client/server graphics are hidden from assistive technology.
 - Narrative text remains real DOM text in document order rather than canvas-rendered text.
-- Colour is not the only signal for lag and recovery; use motion/state shape, line treatment, or a concise label as a second cue.
+- Colour is not the only signal for lag and recovery; preserve the stable identity marker and use state shape, line treatment, or a concise label as additional cues.
 - Maintain sufficient text contrast against every simulation state.
 
 ## Technical boundaries
@@ -113,7 +128,7 @@ Mobile and narrow tablet:
 - Each line has its distinct approved visual treatment.
 - The transitions are scroll-controlled, continuous where sensible, and cleanly reversible.
 - The underlying world never visibly resets between beats.
-- The fourth beat clearly communicates many concurrent clients, continued server health during client lag, and client recovery.
+- The fourth beat clearly communicates many concurrent clients, continued server health during client lag, and recovery of the same visibly identified client/entity.
 - No opening metric or label overstates the project’s committed benchmark evidence.
 - Reduced-motion mode presents the same narrative without continuous geometric motion.
 - The page enters the existing `#tech-content` without a blank gap, collision, or unintended change to that section.
