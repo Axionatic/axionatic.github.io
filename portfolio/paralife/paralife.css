@@ -60,7 +60,7 @@
 .opening-line[data-beat="perception"] {
   left: 50%;
   top: 52%;
-  width: min(560px, 70vw);
+  width: min(560px, 48vw);
   transform: translate(-50%, -50%);
   text-align: center;
   font-size: clamp(18px, 2.4vw, 30px);
