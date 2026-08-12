@@ -89,6 +89,26 @@
 #legend-layer text,
 #network-layer text { font-family: 'Share Tech Mono', monospace; }
 
+.network-link {
+  fill: none;
+  stroke: rgba(0, 204, 204, 0.36);
+  stroke-width: 1;
+}
+
+.client-node { fill: var(--client-color, #0cc); }
+.client-identity-ring { fill: none; stroke: rgba(255, 255, 255, 0.44); stroke-width: 1; }
+.network-client[data-state="lagging"] .client-identity-ring { stroke-dasharray: 2 3; stroke-width: 2; }
+.network-client[data-state="stalled"] .client-identity-ring { stroke: #f96; stroke-dasharray: 1 3; stroke-width: 2; }
+.network-client[data-state="reconnecting"] .client-identity-ring { stroke: #fc6; stroke-dasharray: 5 3; stroke-width: 2; }
+.network-client[data-state="recovered"] .client-identity-ring { stroke: #0ea; stroke-width: 2; }
+.network-link[data-state="lagging"],
+.network-link[data-state="reconnecting"] { stroke-dasharray: 6 5; }
+.network-link[data-state="stalled"] { opacity: 0; }
+#morph-frame[data-role="server"] { fill: rgba(0, 204, 204, 0.10); stroke: #0cc; stroke-width: 1.5; stroke-dasharray: none; }
+#server-label,
+#recovery-label { fill: rgba(255, 255, 255, 0.82); text-anchor: middle; font-size: 12px; letter-spacing: 0.08em; }
+#reconnect-path { fill: none; stroke: #fc6; stroke-width: 2; stroke-dasharray: 7 5; }
+
 /* -- Row 1: architecture SVG ------------------------------------------- */
 .arch-svg { max-width: 380px; }
 

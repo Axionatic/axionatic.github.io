@@ -81,3 +81,38 @@ test('first three beats morph through one shared frame and reverse cleanly', asy
   }));
   expect(after).toEqual(before);
 });
+
+test('client failure lifecycle is scroll-bound and preserves node identity', async ({ page }) => {
+  await navigateToPortfolioPage(page, PARALIFE_PATH);
+  await expect(page.locator('.network-client')).toHaveCount(18);
+
+  const sample = page.locator('.network-client[data-client-id="client-03"]');
+  const snapshots: Record<string, { transform: string | null; marker: string | null }> = {};
+
+  for (const [progress, phase] of [[0.72, 'lagging'], [0.79, 'stalled'], [0.86, 'reconnecting'], [0.96, 'recovered']] as const) {
+    await scrollToProgress(page, progress);
+    await expect(page.locator('#opening-story')).toHaveAttribute('data-client-phase', phase);
+    await expect(sample).toHaveAttribute('data-state', phase);
+    snapshots[phase] = await sample.evaluate((el) => ({
+      transform: el.getAttribute('transform'),
+      marker: el.getAttribute('data-identity-marker'),
+    }));
+  }
+
+  expect(new Set(Object.values(snapshots).map((s) => s.transform)).size).toBe(1);
+  expect(new Set(Object.values(snapshots).map((s) => s.marker)).size).toBe(1);
+
+  await scrollToProgress(page, 0.79);
+  await expect(sample).toHaveAttribute('data-state', 'stalled');
+  await scrollToProgress(page, 0.96);
+  await expect(page.locator('#recovery-label')).toHaveCSS('opacity', '1');
+});
+
+test('healthy clients remain healthy while affected clients stall', async ({ page }) => {
+  await navigateToPortfolioPage(page, PARALIFE_PATH);
+  await scrollToProgress(page, 0.79);
+  await expect(page.locator('.network-client[data-client-id="client-03"]')).toHaveAttribute('data-state', 'stalled');
+  await expect(page.locator('.network-client[data-client-id="client-11"]')).toHaveAttribute('data-state', 'stalled');
+  await expect(page.locator('.network-client[data-client-id="client-04"]')).toHaveAttribute('data-state', 'healthy');
+  await expect(page.locator('#morph-frame')).toHaveAttribute('data-state', 'healthy');
+});
