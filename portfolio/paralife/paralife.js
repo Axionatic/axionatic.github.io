@@ -291,8 +291,10 @@ function render() {
 
 /** Cheap: canvas bitmap only. Safe to run on every resize event. */
 function resizeCanvas() {
-  W = window.innerWidth;
-  H = window.innerHeight;
+  // clientWidth, not innerWidth: the fixed SVG overlay is sized excluding the
+  // scrollbar, and its viewBox must match or every shape lands slightly off.
+  W = document.documentElement.clientWidth;
+  H = document.documentElement.clientHeight;
   dpr = Math.min(window.devicePixelRatio || 1, 2);
 
   canvas.width = W * dpr;

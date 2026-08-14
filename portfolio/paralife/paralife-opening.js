@@ -69,15 +69,28 @@
     const reduced = window.matchMedia('(prefers-reduced-motion: reduce)');
     // Sibling vision windows (windows[1..]). windows[0] is drawn by the
     // persistent #morph-frame / #observed-entity pair so it can morph on.
-    const extraWindows = Array.from({ length: 3 }, () => {
+    const extraWindows = Array.from({ length: 3 }, (_, index) => {
       const rect = document.createElementNS(SVG_NS, 'rect');
       rect.classList.add('vision-frame');
       const dot = document.createElementNS(SVG_NS, 'circle');
       dot.classList.add('vision-dot');
       dot.setAttribute('r', '4');
-      perceptionLayer.append(rect, dot);
-      return { rect, dot };
+      const label = document.createElementNS(SVG_NS, 'text');
+      label.classList.add('vision-label');
+      label.textContent = `ENTITY ${index + 2} VIEW`;
+      perceptionLayer.append(rect, dot, label);
+      return { rect, dot, label };
     });
+
+    // The entity roams within its window; the window itself stays put so the
+    // frame remains a pure function of scroll progress and viewport.
+    function entityDrift(win, index, ambientTime) {
+      const amp = win.rect.width * 0.18;
+      return {
+        x: win.center.x + Math.sin(ambientTime * 0.45 + index * 2.1) * amp,
+        y: win.center.y + Math.cos(ambientTime * 0.31 + index * 1.4) * amp,
+      };
+    }
     const clients = Array.from({ length: 18 }, (_, index) => {
       const id = `client-${String(index).padStart(2, '0')}`;
       const group = document.createElementNS(SVG_NS, 'g');
@@ -136,8 +149,11 @@
       frame.setAttribute('height', currentFrame.height.toFixed(2));
       frame.dataset.role = networkMorph > 0.98 ? 'server' : 'frame';
       frame.dataset.state = 'healthy';
-      observed.setAttribute('cx', windows[0].center.x.toFixed(2));
-      observed.setAttribute('cy', windows[0].center.y.toFixed(2));
+      const primaryEntity = reduced.matches
+        ? windows[0].center
+        : entityDrift(windows[0], 0, ambientTime);
+      observed.setAttribute('cx', primaryEntity.x.toFixed(2));
+      observed.setAttribute('cy', primaryEntity.y.toFixed(2));
       perceptionLabel.setAttribute('x', windows[0].center.x.toFixed(2));
       perceptionLabel.setAttribute('y', (windows[0].rect.y - 10).toFixed(2));
       extraWindows.forEach((extra, index) => {
@@ -145,13 +161,17 @@
         const on = !!win;
         extra.rect.style.display = on ? '' : 'none';
         extra.dot.style.display = on ? '' : 'none';
+        extra.label.style.display = on ? '' : 'none';
         if (!on) return;
         extra.rect.setAttribute('x', win.rect.x.toFixed(2));
         extra.rect.setAttribute('y', win.rect.y.toFixed(2));
         extra.rect.setAttribute('width', win.rect.width.toFixed(2));
         extra.rect.setAttribute('height', win.rect.height.toFixed(2));
-        extra.dot.setAttribute('cx', win.center.x.toFixed(2));
-        extra.dot.setAttribute('cy', win.center.y.toFixed(2));
+        const entity = reduced.matches ? win.center : entityDrift(win, index + 1, ambientTime);
+        extra.dot.setAttribute('cx', entity.x.toFixed(2));
+        extra.dot.setAttribute('cy', entity.y.toFixed(2));
+        extra.label.setAttribute('x', win.center.x.toFixed(2));
+        extra.label.setAttribute('y', (win.rect.y - 10).toFixed(2));
       });
       const legendCenterX = legendRect.x + legendRect.width / 2;
       const legendStartY = legendRect.y + legendRect.height * 0.30;
