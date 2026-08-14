@@ -6,20 +6,19 @@
 /* Clears the fixed header panel once it settles over the tech rows. */
 #tech-content { padding-top: 72px; }
 
-#header-panel { padding: 20px 32px; width: min(560px, 60vw); }
+#header-panel { padding: 24px 32px 16px; width: min(560px, 60vw); }
 
 #title-overlay {
   display: block;
   margin: 0 auto;
   font-family: 'Major Mono Display', monospace;
-  font-size: clamp(28px, 5vw, 52px);
+  font-size: clamp(20px, 3.5vw, 42px);
   color: #0cc;
-  letter-spacing: 0.12em;
-  line-height: 1.2;
+  letter-spacing: 0.05em;
 }
 
 #subtitle {
-  font-size: clamp(16px, 2vw, 22px);
+  font-size: clamp(12px, 1.3vw, 16px);
   color: rgba(255, 255, 255, 0.3);
   margin-top: 4px;
   letter-spacing: 0.12em;
@@ -40,7 +39,9 @@
   position: absolute;
   margin: 0;
   opacity: 0;
-  text-shadow: 0 3px 24px rgba(0, 0, 0, 0.95);
+  font-size: clamp(18px, 2.5vw, 28px);
+  line-height: 1.4;
+  text-shadow: 0 2px 20px rgba(0, 0, 0, 0.8);
   will-change: opacity, transform;
 }
 
@@ -50,11 +51,8 @@
   top: 42%;
   transform: translateY(-50%);
   text-align: center;
-  font: 600 clamp(30px, 5vw, 72px)/1.05 system-ui, sans-serif;
-  letter-spacing: -0.035em;
-  color: rgba(255, 183, 104, 0.94);
-  background: linear-gradient(90deg, transparent, rgba(0, 0, 0, 0.68) 18% 82%, transparent);
-  padding: 0.35em 4vw;
+  font-size: clamp(20px, 3vw, 36px);
+  color: rgba(255, 180, 100, 0.85);
 }
 
 .opening-line[data-beat="perception"] {
@@ -63,8 +61,7 @@
   width: min(560px, 48vw);
   transform: translate(-50%, -50%);
   text-align: center;
-  font-size: clamp(18px, 2.4vw, 30px);
-  color: rgba(220, 205, 255, 0.94);
+  color: rgba(255, 200, 140, 0.85);
 }
 
 .opening-line[data-beat="emergence"] {
@@ -73,13 +70,12 @@
   width: min(720px, 80vw);
   transform: translateX(-50%);
   text-align: center;
-  font-size: clamp(18px, 2.4vw, 30px);
-  color: rgba(80, 235, 215, 0.94);
+  color: rgba(200, 220, 200, 0.85);
 }
 
 #morph-frame {
-  fill: rgba(0, 20, 22, 0.18);
-  stroke: rgba(255, 255, 255, 0.55);
+  fill: rgba(0, 204, 204, 0.03);
+  stroke: rgba(0, 204, 204, 0.35);
   stroke-width: 1;
   stroke-dasharray: 5 5;
 }
@@ -110,7 +106,7 @@
 #reconnect-path { fill: none; stroke: #fc6; stroke-width: 2; stroke-dasharray: 7 5; }
 
 #legend-layer text { text-anchor: middle; fill: rgba(255, 255, 255, 0.78); }
-#legend-layer .legend-species { font-size: clamp(18px, 2.2vw, 30px); letter-spacing: 0.16em; }
+#legend-layer .legend-species { font-size: clamp(16px, 2vw, 24px); letter-spacing: 0.16em; }
 #legend-layer .legend-catalyst { fill: #0cc; }
 #legend-layer .legend-membrane { fill: #be8cff; }
 #legend-layer .legend-spore { fill: #ffa046; }
@@ -120,8 +116,7 @@
   left: 6vw;
   top: 38%;
   width: min(390px, 34vw);
-  font-size: clamp(20px, 2.5vw, 34px);
-  color: rgba(255, 255, 255, 0.94);
+  color: rgba(50, 230, 160, 0.85);
 }
 
 /* -- Row 1: architecture SVG ------------------------------------------- */
@@ -364,7 +359,7 @@
     left: 4vw;
     right: 4vw;
     top: 38%;
-    font-size: clamp(28px, 9vw, 46px);
+    font-size: clamp(20px, 6vw, 30px);
   }
 
   .opening-line[data-beat="perception"],

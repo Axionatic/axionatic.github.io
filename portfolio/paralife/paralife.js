@@ -161,7 +161,7 @@ function step() {
 
 function visionAmount() {
   const enter = smoothstep(clamp01((morphProgress - 0.13) / 0.09));
-  const leave = smoothstep(clamp01((morphProgress - 0.56) / 0.12));
+  const leave = smoothstep(clamp01((morphProgress - 0.40) / 0.09));
   return enter * (1 - leave);
 }
 

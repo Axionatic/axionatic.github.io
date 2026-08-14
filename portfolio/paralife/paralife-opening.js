@@ -209,7 +209,7 @@
       const fieldCompression = between(progress, 0.13, 0.20);
       lines[0].style.transform = reduced.matches
         ? 'translateY(-50%)'
-        : `translateY(-50%) scale(${lerp(1, 0.42, fieldCompression).toFixed(3)})`;
+        : `translateY(-50%) scale(${lerp(1, 0.65, fieldCompression).toFixed(3)})`;
       lines[1].style.transform = reduced.matches
         ? 'translate(-50%, -50%)'
         : `translate(-50%, -50%) scale(${lerp(0.82, 1, state.perceptionAmount).toFixed(3)})`;
