@@ -34,6 +34,9 @@ const SPECIES_COUNT = SPECIES.length;
 // -- Vision scoping ----------------------------------------------------------
 const VISION_RADIUS = 5;         // cells visible around the observed entity
 const OUTSIDE_DIM = 0.16;        // brightness of redacted cells when fully scoped
+const WINDOWS_MAX = 4;
+const WINDOW_SLOT_SPACING = 0.28;          // slot pitch, fraction of viewport width
+const WINDOW_WOBBLE = [0, -0.06, 0.07, -0.04]; // per-slot vertical offset, fraction of height
 
 // -- Scroll ------------------------------------------------------------------
 const SCRUB_SMOOTHING = 0.8;
@@ -165,25 +168,47 @@ function visionAmount() {
   return enter * (1 - leave);
 }
 
-function getNarrativeObserverCell() {
-  const geometry = window.ParalifeOpening.deterministicObserverGeometry(
-    morphProgress,
-    { width: W, height: H },
-  );
-  return {
-    x: clamp(Math.floor((geometry.entity.x - offsetX) / cellPx), 0, cols - 1),
-    y: clamp(Math.floor((geometry.entity.y - offsetY) / cellPx), 0, rows - 1),
-  };
+/** Observed-entity windows, snapped to the cell grid so the SVG frames sit
+ *  exactly on the undimmed cells. Deterministic per viewport: as many as fit
+ *  comfortably across the width, always 1 on mobile. windows[0] is the
+ *  centre slot — the one the morph frame carries into the legend. */
+function visionWindows() {
+  const winCells = VISION_RADIUS * 2 + 1;
+  const count = W <= 800 ? 1
+    : clamp(Math.floor(W / (winCells * cellPx * 2.4)), 1, WINDOWS_MAX);
+  const baseY = W <= 800 ? 0.46 : 0.42;
+  const slots = [];
+  for (let i = 0; i < count; i++) {
+    slots.push({
+      fx: 0.5 + (i - (count - 1) / 2) * WINDOW_SLOT_SPACING,
+      fy: baseY + WINDOW_WOBBLE[i],
+    });
+  }
+  slots.sort((a, b) => Math.abs(a.fx - 0.5) - Math.abs(b.fx - 0.5));
+  return slots.map((slot) => {
+    const cx = clamp(Math.round((W * slot.fx - offsetX) / cellPx), VISION_RADIUS, cols - 1 - VISION_RADIUS);
+    const cy = clamp(Math.round((H * slot.fy - offsetY) / cellPx), VISION_RADIUS, rows - 1 - VISION_RADIUS);
+    return {
+      cx, cy,
+      rect: {
+        x: offsetX + (cx - VISION_RADIUS) * cellPx,
+        y: offsetY + (cy - VISION_RADIUS) * cellPx,
+        width: winCells * cellPx,
+        height: winCells * cellPx,
+      },
+      center: {
+        x: offsetX + (cx + 0.5) * cellPx,
+        y: offsetY + (cy + 0.5) * cellPx,
+      },
+    };
+  });
 }
 
-function drawWorld() {
+function drawWorld(windows) {
   const vision = visionAmount();
   // The world only recedes once the tech rows start arriving — driven by the
   // tech-content trigger, not the runway, so there is no blank stretch between.
   const globalFade = lerp(WORLD_FLOOR, 1, techFade);
-  const observer = getNarrativeObserverCell();
-  const ox = observer.x;
-  const oy = observer.y;
 
   ctx.fillStyle = '#000';
   ctx.fillRect(0, 0, W, H);
@@ -198,11 +223,16 @@ function drawWorld() {
     for (let x = 0; x < cols; x++) {
       const species = SPECIES[grid[idx(x, y)]];
 
-      // Cells outside the observed entity's reach are dimmed, not deleted —
-      // the server redacts them from that entity's frame the same way.
-      const dx = Math.abs(wrapDelta(x, ox, cols));
-      const dy = Math.abs(wrapDelta(y, oy, rows));
-      const inside = Math.max(dx, dy) <= VISION_RADIUS;
+      // Cells outside every observed entity's reach are dimmed, not deleted —
+      // the server redacts them from each entity's frame the same way.
+      let inside = false;
+      for (let i = 0; i < windows.length; i++) {
+        if (Math.abs(wrapDelta(x, windows[i].cx, cols)) <= VISION_RADIUS &&
+            Math.abs(wrapDelta(y, windows[i].cy, rows)) <= VISION_RADIUS) {
+          inside = true;
+          break;
+        }
+      }
       const dim = inside ? 1 : lerp(1, OUTSIDE_DIM, vision);
 
       const alpha = CELL_ALPHA * dim * globalFade;
@@ -242,11 +272,13 @@ function render() {
     step();
   }
 
-  drawWorld();
+  const windows = visionWindows();
+  drawWorld(windows);
   openingController.render({
     progress: morphProgress,
     techFade,
     viewport: { width: W, height: H },
+    windows,
     ambientTime: time,
   });
 

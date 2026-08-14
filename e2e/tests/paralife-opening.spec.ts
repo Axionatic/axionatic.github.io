@@ -144,10 +144,25 @@ test('responsive narrative geometry clears chrome and stays inside its visual fr
   expect(perceptionFrame).not.toBeNull();
   expect(header).not.toBeNull();
   expect(nav).not.toBeNull();
-  expect(perceptionCopy!.x).toBeGreaterThanOrEqual(perceptionFrame!.x - 2);
-  expect(perceptionCopy!.y).toBeGreaterThanOrEqual(perceptionFrame!.y - 2);
-  expect(perceptionCopy!.x + perceptionCopy!.width).toBeLessThanOrEqual(perceptionFrame!.x + perceptionFrame!.width + 2);
-  expect(perceptionCopy!.y + perceptionCopy!.height).toBeLessThanOrEqual(perceptionFrame!.y + perceptionFrame!.height + 2);
+
+  // The dashed frame hugs the actual vision window: (2*5+1) cells square.
+  const viewportWidth = page.viewportSize()!.width;
+  const cellPx = viewportWidth < 600 ? 12 : 16;
+  const windowPx = 11 * cellPx;
+  expect(Math.abs(perceptionFrame!.width - windowPx)).toBeLessThanOrEqual(2);
+  expect(Math.abs(perceptionFrame!.height - windowPx)).toBeLessThanOrEqual(2);
+
+  // As many windows as fit the viewport: 1 on mobile, several on desktop.
+  const windowCount = Number(await page.locator('#opening-story').getAttribute('data-vision-windows'));
+  if (viewportWidth > 800) {
+    expect(windowCount).toBeGreaterThanOrEqual(2);
+  } else {
+    expect(windowCount).toBe(1);
+  }
+  await expect(page.locator('.vision-frame:visible')).toHaveCount(windowCount - 1);
+
+  // Copy sits clear of the window, below the band.
+  expect(perceptionCopy!.y).toBeGreaterThanOrEqual(perceptionFrame!.y + perceptionFrame!.height - 2);
   expect(perceptionFrame!.y).toBeGreaterThanOrEqual(header!.y + header!.height - 2);
   const frameOverlapsNav = !(
     perceptionFrame!.x + perceptionFrame!.width <= nav!.x ||

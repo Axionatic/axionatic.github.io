@@ -48,33 +48,6 @@
     };
   }
 
-  function deterministicObserverGeometry(progress, viewport) {
-    const mobile = viewport.width <= 800;
-    const frameWidth = mobile
-      ? viewport.width * 0.86
-      : Math.min(viewport.width * 0.52, 680);
-    const frameHeight = mobile
-      ? viewport.height * 0.42
-      : Math.min(viewport.height * 0.46, 460);
-    const start = mobile
-      ? { x: viewport.width * 0.50, y: viewport.height * 0.55 }
-      : { x: viewport.width * 0.54, y: viewport.height * 0.54 };
-    const end = mobile
-      ? { x: viewport.width * 0.50, y: viewport.height * 0.55 }
-      : { x: viewport.width * 0.50, y: viewport.height * 0.56 };
-    const travel = between(progress, 0.18, 0.40);
-    const center = { x: lerp(start.x, end.x, travel), y: lerp(start.y, end.y, travel) };
-    return {
-      frame: {
-        x: center.x - frameWidth / 2,
-        y: center.y - frameHeight / 2,
-        width: frameWidth,
-        height: frameHeight,
-      },
-      entity: { x: center.x, y: center.y },
-    };
-  }
-
   function create(root) {
     const SVG_NS = 'http://www.w3.org/2000/svg';
     const svg = document.getElementById('opening-visuals');
@@ -92,7 +65,19 @@
     const serverLabel = document.getElementById('server-label');
     const reconnectPath = document.getElementById('reconnect-path');
     const recoveryLabel = document.getElementById('recovery-label');
+    const perceptionLabel = document.getElementById('perception-label');
     const reduced = window.matchMedia('(prefers-reduced-motion: reduce)');
+    // Sibling vision windows (windows[1..]). windows[0] is drawn by the
+    // persistent #morph-frame / #observed-entity pair so it can morph on.
+    const extraWindows = Array.from({ length: 3 }, () => {
+      const rect = document.createElementNS(SVG_NS, 'rect');
+      rect.classList.add('vision-frame');
+      const dot = document.createElementNS(SVG_NS, 'circle');
+      dot.classList.add('vision-dot');
+      dot.setAttribute('r', '4');
+      perceptionLayer.append(rect, dot);
+      return { rect, dot };
+    });
     const clients = Array.from({ length: 18 }, (_, index) => {
       const id = `client-${String(index).padStart(2, '0')}`;
       const group = document.createElementNS(SVG_NS, 'g');
@@ -116,9 +101,8 @@
       return { id, index, group, link };
     });
 
-    function render({ progress, techFade, viewport, ambientTime }) {
+    function render({ progress, techFade, viewport, windows, ambientTime }) {
       const state = deriveState(progress, reduced.matches);
-      const observer = deterministicObserverGeometry(progress, viewport);
       const legendRect = viewport.width <= 800
         ? { x: viewport.width * 0.10, y: viewport.height * 0.32, width: viewport.width * 0.80, height: viewport.height * 0.42 }
         : { x: viewport.width * 0.18, y: viewport.height * 0.24, width: viewport.width * 0.64, height: viewport.height * 0.52 };
@@ -134,11 +118,11 @@
         height: server.height,
       };
       const networkMorph = between(progress, 0.60, 0.70);
-      const legendFrame = mixRect(observer.frame, legendRect, legendMorph);
+      const legendFrame = mixRect(windows[0].rect, legendRect, legendMorph);
       let currentFrame = mixRect(legendFrame, serverRect, networkMorph);
       if (reduced.matches) {
         currentFrame = state.beat === 'world' || state.beat === 'perception'
-          ? observer.frame
+          ? windows[0].rect
           : state.beat === 'emergence' ? legendRect : serverRect;
       }
       const radiusX = mobile ? viewport.width * 0.38 : viewport.width * 0.24;
@@ -152,8 +136,23 @@
       frame.setAttribute('height', currentFrame.height.toFixed(2));
       frame.dataset.role = networkMorph > 0.98 ? 'server' : 'frame';
       frame.dataset.state = 'healthy';
-      observed.setAttribute('cx', observer.entity.x.toFixed(2));
-      observed.setAttribute('cy', observer.entity.y.toFixed(2));
+      observed.setAttribute('cx', windows[0].center.x.toFixed(2));
+      observed.setAttribute('cy', windows[0].center.y.toFixed(2));
+      perceptionLabel.setAttribute('x', windows[0].center.x.toFixed(2));
+      perceptionLabel.setAttribute('y', (windows[0].rect.y - 10).toFixed(2));
+      extraWindows.forEach((extra, index) => {
+        const win = windows[index + 1];
+        const on = !!win;
+        extra.rect.style.display = on ? '' : 'none';
+        extra.dot.style.display = on ? '' : 'none';
+        if (!on) return;
+        extra.rect.setAttribute('x', win.rect.x.toFixed(2));
+        extra.rect.setAttribute('y', win.rect.y.toFixed(2));
+        extra.rect.setAttribute('width', win.rect.width.toFixed(2));
+        extra.rect.setAttribute('height', win.rect.height.toFixed(2));
+        extra.dot.setAttribute('cx', win.center.x.toFixed(2));
+        extra.dot.setAttribute('cy', win.center.y.toFixed(2));
+      });
       const legendCenterX = legendRect.x + legendRect.width / 2;
       const legendStartY = legendRect.y + legendRect.height * 0.30;
       legendSpecies.forEach((label, index) => {
@@ -197,6 +196,7 @@
       recoveryLabel.style.opacity = ['lagging', 'stalled', 'reconnecting', 'recovered', 'static'].includes(state.clientPhase) ? '1' : '0';
 
       root.dataset.activeBeat = state.beat;
+      root.dataset.visionWindows = String(windows.length);
       root.dataset.clientPhase = state.clientPhase;
       root.dataset.layout = mobile ? 'mobile' : 'desktop';
       root.dataset.reducedMotion = reduced.matches ? 'true' : 'false';
@@ -225,5 +225,5 @@
     return { render };
   }
 
-  window.ParalifeOpening = { deriveState, deterministicObserverGeometry, create };
+  window.ParalifeOpening = { deriveState, create };
 }());
