@@ -1,7 +1,7 @@
 /* Paralife — page-specific styles.
    Load order: portfolio.css → portfolio-components.css → this file. */
 
-#runway { height: 500vh; }
+#runway { height: 400vh; }
 
 /* Clears the fixed header panel once it settles over the tech rows. */
 #tech-content { padding-top: 72px; }
@@ -121,10 +121,46 @@
 .network-link[data-state="reconnecting"] { stroke-dasharray: 6 5; }
 .network-link[data-state="stalled"] { opacity: 0; }
 #morph-frame[data-role="server"] { fill: rgba(0, 204, 204, 0.10); stroke: #0cc; stroke-width: 1.5; stroke-dasharray: none; }
-#server-label,
-#recovery-label { fill: rgba(255, 255, 255, 0.82); text-anchor: middle; font-size: 12px; letter-spacing: 0.08em; }
-#reconnect-path { fill: none; stroke: #fc6; stroke-width: 2; stroke-dasharray: 7 5; }
-.resume-token { fill: #fc6; filter: drop-shadow(0 0 5px #fc6); pointer-events: none; }
+#server-label { fill: rgba(255, 255, 255, 0.82); text-anchor: middle; font-size: 12px; letter-spacing: 0.08em; }
+
+/* Durability state readout — a filled pill + bold label, colour-coded by phase
+   so the network-instability handling reads at a glance. */
+#recovery-label {
+  text-anchor: middle;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  fill: #fff;
+}
+#recovery-label[data-phase="stalled"]      { fill: #ffb99a; }
+#recovery-label[data-phase="reconnecting"] { fill: #ffe0a0; }
+#recovery-label[data-phase="recovered"]    { fill: #8ff0d2; }
+
+.state-pill { fill: rgba(0, 0, 0, 0.6); stroke-width: 1.5; }
+.state-pill[data-phase="stalled"]      { stroke: #f96; filter: drop-shadow(0 0 7px rgba(255, 153, 102, 0.75)); }
+.state-pill[data-phase="reconnecting"] { stroke: #fc6; filter: drop-shadow(0 0 7px rgba(255, 204, 102, 0.75)); }
+.state-pill[data-phase="recovered"]    { stroke: #0ea; filter: drop-shadow(0 0 8px rgba(0, 234, 170, 0.8)); }
+.state-pill[data-phase="static"]       { stroke: rgba(255, 255, 255, 0.5); }
+
+#reconnect-path {
+  fill: none;
+  stroke: #fc6;
+  stroke-width: 2.5;
+  stroke-dasharray: 7 5;
+  filter: drop-shadow(0 0 4px rgba(255, 204, 102, 0.6));
+  animation: reconnect-dash 0.6s linear infinite;
+}
+@keyframes reconnect-dash { to { stroke-dashoffset: -12; } }
+.resume-token { fill: #fc6; filter: drop-shadow(0 0 6px #fc6); pointer-events: none; }
+
+/* The one connection telling the durability story — brighter, glowing, so the
+   eye locks onto it in the ring while its phase changes. */
+.network-client[data-protagonist="true"] .client-identity-ring { stroke: rgba(255, 255, 255, 0.7); stroke-width: 1.5; }
+.network-client[data-protagonist="true"][data-state="stalled"] .client-node,
+.network-client[data-protagonist="true"][data-state="reconnecting"] .client-node,
+.network-client[data-protagonist="true"][data-state="recovered"] .client-node {
+  filter: drop-shadow(0 0 8px var(--client-color, #0cc));
+}
 #frame-inset { pointer-events: none; }
 .inset-cell { stroke: rgba(0, 204, 204, 0.22); stroke-width: 1; }
 .inset-codec { fill: #0cc; font-size: 11px; letter-spacing: 0.18em; text-transform: uppercase; }
@@ -133,7 +169,16 @@
 .inset-bytes { fill: rgba(0, 204, 204, 0.92); font-size: 13px; letter-spacing: 0.04em; }
 .inset-caption { fill: rgba(255, 255, 255, 0.45); font-size: 10px; letter-spacing: 0.08em; }
 .inset-codec, .inset-label, .inset-arrow, .inset-bytes, .inset-caption { font-family: 'Share Tech Mono', monospace; }
-.grace-label { fill: #f96; text-anchor: middle; font-size: 11px; letter-spacing: 0.12em; font-family: 'Share Tech Mono', monospace; pointer-events: none; }
+.grace-label {
+  fill: #ffcf99;
+  text-anchor: middle;
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  font-family: 'Share Tech Mono', monospace;
+  filter: drop-shadow(0 0 6px rgba(255, 153, 102, 0.85));
+  pointer-events: none;
+}
 
 #legend-layer text { text-anchor: middle; fill: rgba(255, 255, 255, 0.78); }
 #legend-layer .legend-species { font-size: clamp(16px, 2vw, 24px); letter-spacing: 0.16em; }
@@ -143,10 +188,20 @@
 #legend-cycle { font-size: clamp(10px, 1.2vw, 15px); letter-spacing: 0.08em; }
 
 .opening-line[data-beat="concurrency"] {
-  left: 6vw;
-  top: 38%;
+  left: 16vw;
+  top: 35%;
   width: min(390px, 34vw);
   color: rgba(50, 230, 160, 0.85);
+}
+
+/* Title over the server illustration — labels the disconnect/reconnect demo.
+   Amber to match the stall/reconnect pills, so label and animation read as one.
+   Position and font-size are set per layout in paralife-opening.js. */
+#durability-title {
+  fill: #fc6;
+  text-anchor: middle;
+  letter-spacing: 0.2em;
+  font-family: 'Share Tech Mono', monospace;
 }
 
 /* -- Row 1: architecture SVG ------------------------------------------- */

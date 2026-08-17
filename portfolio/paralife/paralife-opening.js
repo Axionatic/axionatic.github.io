@@ -15,6 +15,14 @@
     height: lerp(from.height, to.height, t),
   });
 
+  // Scroll-progress ranges shared by deriveState() and render(), so the diagram
+  // assembly and the opacities driving it never drift. The intro is compressed
+  // into [0, ~0.52] to free the tail for the durability arc (see DUR below).
+  // LEGEND: vision windows → species legend. NETWORK: legend → server + ring.
+  const LEGEND_MORPH = [0.30, 0.40];
+  const NETWORK_MORPH = [0.44, 0.52];
+  const range = (p, r) => between(p, r[0], r[1]);
+
   // Build an SVG path from a list of points plus a sampler `at(f)` that walks it
   // by arc length, so a packet can ride the exact route the link draws.
   function polyline(pts) {
@@ -65,7 +73,7 @@
 
   function clientPhase(progress, reducedMotion) {
     if (reducedMotion) return 'static';
-    const local = clamp01((progress - 0.62) / 0.38);
+    const local = clamp01((progress - 0.55) / 0.45);
     if (local < 0.18) return 'healthy';
     if (local < 0.36) return 'lagging';
     if (local < 0.55) return 'stalled';
@@ -73,42 +81,45 @@
     return 'recovered';
   }
 
-  // One protagonist connection's durability story, on a free-running loop (like
-  // the world tick) rather than scroll: its outbound queue overflows → STALLED,
-  // the entity is held on the grid through a 10-tick grace window, the client
-  // reconnects with a single-use resume token, and rebinds to the same entity.
-  const LIFECYCLE_PERIOD = 9.0; // seconds for one full arc
+  // One protagonist connection's durability story, scrubbed by scroll (not a free
+  // clock) across the tail of the concurrency beat: its outbound queue overflows →
+  // STALLED, the entity is held through a 10-tick grace window that counts down as
+  // you scroll, the client reconnects with a single-use resume token, and rebinds
+  // to the same entity. Scroll-driven so even a fast scroller sees every phase.
   const GRACE_TICKS = 10;
-  function durabilityState(ambientTime) {
-    const f = (ambientTime / LIFECYCLE_PERIOD) % 1;
-    if (f < 0.34) return { phase: 'healthy' };
-    if (f < 0.66) {
-      const g = (f - 0.34) / 0.32; // 0 → 1 across the grace window
+  const DUR = { stall: 0.58, reconnect: 0.72, recovered: 0.88 };
+  function durabilityFromScroll(progress) {
+    const p = clamp01(progress);
+    if (p < DUR.stall) return { phase: 'healthy' };
+    if (p < DUR.reconnect) {
+      const g = (p - DUR.stall) / (DUR.reconnect - DUR.stall); // 0 → 1 across grace
       return { phase: 'stalled', grace: Math.max(0, Math.ceil((1 - g) * GRACE_TICKS)) };
     }
-    if (f < 0.84) return { phase: 'reconnecting', back: (f - 0.66) / 0.18 };
+    if (p < DUR.recovered) {
+      return { phase: 'reconnecting', back: (p - DUR.reconnect) / (DUR.recovered - DUR.reconnect) };
+    }
     return { phase: 'recovered' };
   }
 
   function deriveState(progress, reducedMotion = false) {
     const p = clamp01(progress);
-    const beat = p < 0.18 ? 'world'
-      : p < 0.40 ? 'perception'
-      : p < 0.62 ? 'emergence'
+    const beat = p < 0.15 ? 'world'
+      : p < 0.32 ? 'perception'
+      : p < 0.48 ? 'emergence'
       : 'concurrency';
 
     return {
       beat,
       lineOpacities: [
-        1 - between(p, 0.15, 0.20),
-        between(p, 0.15, 0.20) * (1 - between(p, 0.37, 0.42)),
-        between(p, 0.37, 0.42) * (1 - between(p, 0.59, 0.65)),
-        between(p, 0.59, 0.65),
+        1 - between(p, 0.12, 0.17),
+        between(p, 0.12, 0.17) * (1 - between(p, 0.28, 0.34)),
+        between(p, 0.28, 0.34) * (1 - between(p, 0.44, 0.50)),
+        between(p, 0.44, 0.50),
       ],
-      fieldAmount: 1 - between(p, 0.13, 0.22),
-      perceptionAmount: between(p, 0.13, 0.22) * (1 - between(p, 0.39, 0.49)),
-      legendAmount: between(p, 0.39, 0.49) * (1 - between(p, 0.60, 0.70)),
-      networkAmount: between(p, 0.60, 0.70),
+      fieldAmount: 1 - between(p, 0.10, 0.16),
+      perceptionAmount: between(p, 0.10, 0.16) * (1 - range(p, LEGEND_MORPH)),
+      legendAmount: range(p, LEGEND_MORPH) * (1 - range(p, NETWORK_MORPH)),
+      networkAmount: range(p, NETWORK_MORPH),
       clientPhase: clientPhase(p, reducedMotion),
     };
   }
@@ -128,6 +139,7 @@
     const clientLayer = document.getElementById('network-clients');
     const linkLayer = document.getElementById('network-links');
     const serverLabel = document.getElementById('server-label');
+    const durabilityTitle = document.getElementById('durability-title');
     const reconnectPath = document.getElementById('reconnect-path');
     const recoveryLabel = document.getElementById('recovery-label');
     const perceptionLabel = document.getElementById('perception-label');
@@ -201,6 +213,8 @@
     // server to rebind. client-03 is the protagonist (its reconnect path already
     // routes here); everyone else stays healthy so the eye has one thing to hold.
     const PROTAGONIST = 'client-03';
+    const protagonistClient = clients.find((c) => c.id === PROTAGONIST);
+    if (protagonistClient) protagonistClient.group.dataset.protagonist = 'true';
     const graceLabel = document.createElementNS(SVG_NS, 'text');
     graceLabel.classList.add('grace-label');
     graceLabel.style.opacity = '0';
@@ -208,6 +222,13 @@
     resumeToken.classList.add('resume-token');
     resumeToken.setAttribute('r', '4');
     resumeToken.style.opacity = '0';
+    // Filled pill behind the recovery label so the phase reads at a glance.
+    // Inserted before #recovery-label so the text draws on top of the pill.
+    const statePill = document.createElementNS(SVG_NS, 'rect');
+    statePill.classList.add('state-pill');
+    statePill.setAttribute('rx', '12');
+    statePill.style.opacity = '0';
+    networkLayer.insertBefore(statePill, recoveryLabel);
     networkLayer.append(graceLabel, resumeToken);
 
     // Frame readout: one connection's 5×5 vision window (its per-entity
@@ -255,18 +276,18 @@
       const legendRect = viewport.width <= 800
         ? { x: viewport.width * 0.10, y: viewport.height * 0.32, width: viewport.width * 0.80, height: viewport.height * 0.42 }
         : { x: viewport.width * 0.18, y: viewport.height * 0.24, width: viewport.width * 0.64, height: viewport.height * 0.52 };
-      const legendMorph = between(progress, 0.39, 0.49);
+      const legendMorph = range(progress, LEGEND_MORPH);
       const mobile = viewport.width <= 800;
       const server = mobile
         ? { x: viewport.width * 0.50, y: viewport.height * 0.73, width: 112, height: 64 }
-        : { x: viewport.width * 0.70, y: viewport.height * 0.52, width: 128, height: 72 };
+        : { x: viewport.width * 0.64, y: viewport.height * 0.50, width: 128, height: 72 };
       const serverRect = {
         x: server.x - server.width / 2,
         y: server.y - server.height / 2,
         width: server.width,
         height: server.height,
       };
-      const networkMorph = between(progress, 0.60, 0.70);
+      const networkMorph = range(progress, NETWORK_MORPH);
       const legendFrame = mixRect(windows[0].rect, legendRect, legendMorph);
       let currentFrame = mixRect(legendFrame, serverRect, networkMorph);
       if (reduced.matches) {
@@ -274,7 +295,7 @@
           ? windows[0].rect
           : state.beat === 'emergence' ? legendRect : serverRect;
       }
-      const radiusX = mobile ? viewport.width * 0.38 : viewport.width * 0.24;
+      const radiusX = mobile ? viewport.width * 0.38 : viewport.width * 0.19;
       const radiusY = mobile ? viewport.height * 0.22 : viewport.height * 0.30;
 
       svg.setAttribute('viewBox', `0 0 ${viewport.width} ${viewport.height}`);
@@ -326,10 +347,11 @@
       serverPulse.setAttribute('height', (serverRect.height + grow * 2).toFixed(2));
       serverPulse.style.opacity = beatOn ? ((1 - pulseT) * 0.5).toFixed(3) : '0';
 
-      // The protagonist connection's phase is loop-driven while the beat plays;
-      // reduced motion keeps the static summary; before the beat, all healthy.
-      const dur = beatOn ? durabilityState(ambientTime) : null;
-      const activePhase = reduced.matches ? state.clientPhase : (dur ? dur.phase : 'healthy');
+      // The protagonist connection's phase is scrubbed by scroll (not the tick
+      // clock), so the disconnect/reconnect arc can't be scrolled past unseen;
+      // reduced motion keeps the static summary.
+      const dur = reduced.matches ? null : durabilityFromScroll(progress);
+      const activePhase = reduced.matches ? state.clientPhase : dur.phase;
       let protagonist = null;
       const hw = server.width / 2, hh = server.height / 2;
       const clientCount = Math.max(16, Math.min(30, Math.round(viewport.width / 52)));
@@ -349,7 +371,7 @@
           clientState = client.id === 'client-03' ? 'stalled'
             : client.id === 'client-11' ? 'recovered'
             : 'healthy';
-        } else if (beatOn && client.id === PROTAGONIST) {
+        } else if (client.id === PROTAGONIST) {
           clientState = dur.phase;
         } else {
           clientState = 'healthy';
@@ -380,7 +402,7 @@
       const pr = protagonist ? protagonist.route : serverTrace(server.x, server.y, hw, hh, server.x, server.y);
       reconnectPath.setAttribute('d', pr.d);
       reconnectPath.style.opacity = activePhase === 'reconnecting' ? '1' : '0';
-      if (beatOn && dur.phase === 'reconnecting' && protagonist) {
+      if (dur && dur.phase === 'reconnecting' && protagonist) {
         const pt = pr.at(1 - clamp01(dur.back)); // token travels client → server
         resumeToken.setAttribute('cx', pt.x.toFixed(2));
         resumeToken.setAttribute('cy', pt.y.toFixed(2));
@@ -388,10 +410,10 @@
       } else {
         resumeToken.style.opacity = '0';
       }
-      if (beatOn && dur.phase === 'stalled' && protagonist) {
+      if (dur && dur.phase === 'stalled' && protagonist) {
         graceLabel.setAttribute('x', protagonist.x.toFixed(2));
         graceLabel.setAttribute('y', (protagonist.y - 16).toFixed(2));
-        graceLabel.textContent = `grace ${dur.grace}`;
+        graceLabel.textContent = `GRACE ${dur.grace}`;
         graceLabel.style.opacity = '1';
       } else {
         graceLabel.style.opacity = '0';
@@ -412,9 +434,9 @@
         insetArrow.style.fontSize = (big ? 12 : 10) + 'px';
         insetBytes.style.fontSize = (big ? 16 : 12) + 'px';
         insetCaption.style.fontSize = (big ? 12 : 10) + 'px';
-        const ix = big ? viewport.width * 0.05 : viewport.width * 0.08;
-        let iy;
+        let ix, iy;
         if (mobile) {
+          ix = viewport.width * 0.08;
           // Centre it in the gap between the copy and the top of the ring, so it
           // clears both on short phones where that gap is tight.
           const gapTop = viewport.height * 0.31;
@@ -422,9 +444,11 @@
           const insetH = lh + 12 + gridH + 42; // badge + grid + bytes + caption
           iy = gapTop + Math.max(4, (gapBottom - gapTop - insetH) / 2) + 9;
         } else {
-          // Left of the ring, below the copy — the two sit side by side. Clamped
-          // so the taller box can't run off the bottom on a short desktop.
-          iy = Math.min(viewport.height * 0.60, viewport.height - 270);
+          // Stack the readout directly beneath the concurrency copy, sharing its
+          // left edge, so the text and this entity-view read as one left column.
+          const copy = lines[3].getBoundingClientRect();
+          ix = copy.left;
+          iy = Math.min(copy.bottom + 40, viewport.height - 270);
         }
         const labelY = iy + lh;
         const gridTop = labelY + (big ? 20 : 12);
@@ -481,15 +505,41 @@
       }
       serverLabel.setAttribute('x', server.x.toFixed(2));
       serverLabel.setAttribute('y', (server.y + 4).toFixed(2));
+      // Illustration title: sits above the ring on desktop (over the server it
+      // labels); under the header on mobile, where the ring hangs low.
+      if (mobile) {
+        durabilityTitle.setAttribute('x', (viewport.width / 2).toFixed(2));
+        durabilityTitle.setAttribute('y', (viewport.height * 0.13).toFixed(2));
+        durabilityTitle.style.fontSize = '13px';
+      } else {
+        durabilityTitle.setAttribute('x', server.x.toFixed(2));
+        durabilityTitle.setAttribute('y', (server.y - radiusY - 22).toFixed(2));
+        durabilityTitle.style.fontSize = '18px';
+      }
+      const pillY = server.y + server.height / 2 + 26;
       recoveryLabel.setAttribute('x', server.x.toFixed(2));
-      recoveryLabel.setAttribute('y', (server.y + server.height / 2 + 26).toFixed(2));
+      recoveryLabel.setAttribute('y', pillY.toFixed(2));
       recoveryLabel.textContent = {
-        stalled: 'connection stalled',
-        reconnecting: 'reconnecting',
-        recovered: 'same entity restored',
-        static: 'stalled · reconnect available · same entity restored',
+        stalled: 'CONNECTION STALLED',
+        reconnecting: 'RECONNECTING',
+        recovered: 'SAME ENTITY RESTORED',
+        static: 'STALLED · RECONNECT · SAME ENTITY RESTORED',
       }[activePhase] || '';
-      recoveryLabel.style.opacity = ['stalled', 'reconnecting', 'recovered', 'static'].includes(activePhase) ? '1' : '0';
+      const showPill = ['stalled', 'reconnecting', 'recovered', 'static'].includes(activePhase);
+      recoveryLabel.dataset.phase = activePhase;
+      recoveryLabel.style.opacity = showPill ? '1' : '0';
+      // Size the pill to the label each active frame (text length isn't known
+      // ahead of time). Vertically centred on the label's optical middle.
+      statePill.dataset.phase = activePhase;
+      statePill.style.opacity = showPill ? '1' : '0';
+      if (showPill) {
+        const tw = recoveryLabel.getComputedTextLength();
+        const padX = 16, ph = 26;
+        statePill.setAttribute('x', (server.x - tw / 2 - padX).toFixed(2));
+        statePill.setAttribute('y', (pillY - ph + 8).toFixed(2));
+        statePill.setAttribute('width', (tw + padX * 2).toFixed(2));
+        statePill.setAttribute('height', String(ph));
+      }
 
       root.dataset.activeBeat = state.beat;
       root.dataset.visionWindows = String(windows.length);
@@ -502,7 +552,7 @@
           ? String(index === ['world', 'perception', 'emergence', 'concurrency'].indexOf(state.beat) ? 1 : 0)
           : state.lineOpacities[index].toFixed(3);
       });
-      const fieldCompression = between(progress, 0.13, 0.20);
+      const fieldCompression = between(progress, 0.10, 0.17);
       lines[0].style.transform = reduced.matches
         ? 'translateY(-50%)'
         : `translateY(-50%) scale(${lerp(1, 0.65, fieldCompression).toFixed(3)})`;
