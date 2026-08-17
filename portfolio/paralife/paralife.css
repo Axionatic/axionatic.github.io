@@ -1,0 +1,486 @@
+/* Paralife — page-specific styles.
+   Load order: portfolio.css → portfolio-components.css → this file. */
+
+#runway { height: 400vh; }
+
+/* Clears the fixed header panel once it settles over the tech rows. */
+#tech-content { padding-top: 72px; }
+
+#header-panel { padding: 24px 32px 16px; width: min(560px, 60vw); }
+
+#title-overlay {
+  display: block;
+  margin: 0 auto;
+  font-family: 'Major Mono Display', monospace;
+  font-size: clamp(20px, 3.5vw, 42px);
+  color: #0cc;
+  letter-spacing: 0.05em;
+}
+
+#subtitle {
+  font-size: clamp(12px, 1.3vw, 16px);
+  color: rgba(255, 255, 255, 0.3);
+  margin-top: 4px;
+  letter-spacing: 0.12em;
+}
+
+/* -- Opening narrative ------------------------------------------------- */
+#opening-story,
+#opening-visuals {
+  position: fixed;
+  inset: 0;
+  z-index: 10;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
+.opening-line {
+  position: absolute;
+  margin: 0;
+  opacity: 0;
+  font-size: clamp(18px, 2.5vw, 28px);
+  line-height: 1.4;
+  text-shadow: 0 2px 20px rgba(0, 0, 0, 0.8);
+  will-change: opacity, transform;
+}
+
+.opening-line[data-beat="world"] {
+  left: 8vw;
+  right: 8vw;
+  top: 42%;
+  transform: translateY(-50%);
+  text-align: center;
+  font-size: clamp(20px, 3vw, 36px);
+  color: rgba(255, 180, 100, 0.85);
+}
+
+.opening-line[data-beat="perception"] {
+  left: 50%;
+  top: 72%;
+  width: min(560px, 60vw);
+  transform: translate(-50%, -50%);
+  text-align: center;
+  color: rgba(255, 200, 140, 0.85);
+}
+
+.opening-line[data-beat="emergence"] {
+  left: 50%;
+  bottom: 16%;
+  width: min(720px, 80vw);
+  transform: translateX(-50%);
+  text-align: center;
+  color: rgba(200, 220, 200, 0.85);
+}
+
+#morph-frame {
+  fill: rgba(0, 204, 204, 0.03);
+  stroke: rgba(0, 204, 204, 0.35);
+  stroke-width: 1;
+  stroke-dasharray: 5 5;
+}
+
+#observed-entity { fill: #fff; filter: drop-shadow(0 0 7px #fff); }
+
+.vision-frame {
+  fill: rgba(0, 204, 204, 0.03);
+  stroke: rgba(0, 204, 204, 0.35);
+  stroke-width: 1;
+  stroke-dasharray: 5 5;
+}
+.vision-dot { fill: #fff; filter: drop-shadow(0 0 5px #fff); }
+#perception-label,
+.vision-label {
+  fill: rgba(255, 255, 255, 0.5);
+  text-anchor: middle;
+  font-size: 11px;
+  letter-spacing: 0.16em;
+}
+
+#perception-label,
+.vision-label,
+#legend-layer text,
+#network-layer text { font-family: 'Share Tech Mono', monospace; }
+
+.network-link {
+  fill: none;
+  stroke: rgba(0, 204, 204, 0.36);
+  stroke-width: 1;
+}
+
+.server-pulse { fill: none; stroke: #0cc; stroke-width: 1.5; opacity: 0; pointer-events: none; }
+.wire-packet { fill: #0cc; filter: drop-shadow(0 0 4px rgba(0, 204, 204, 0.9)); opacity: 0; pointer-events: none; }
+
+.client-node { fill: var(--client-color, #0cc); }
+.client-identity-ring { fill: none; stroke: rgba(255, 255, 255, 0.44); stroke-width: 1; }
+.network-client[data-state="lagging"] .client-identity-ring { stroke-dasharray: 2 3; stroke-width: 2; }
+.network-client[data-state="stalled"] .client-identity-ring { stroke: #f96; stroke-dasharray: 1 3; stroke-width: 2; }
+.network-client[data-state="reconnecting"] .client-identity-ring { stroke: #fc6; stroke-dasharray: 5 3; stroke-width: 2; }
+.network-client[data-state="recovered"] .client-identity-ring { stroke: #0ea; stroke-width: 2; }
+.network-link[data-state="lagging"],
+.network-link[data-state="reconnecting"] { stroke-dasharray: 6 5; }
+.network-link[data-state="stalled"] { opacity: 0; }
+#morph-frame[data-role="server"] { fill: rgba(0, 204, 204, 0.10); stroke: #0cc; stroke-width: 1.5; stroke-dasharray: none; }
+#server-label { fill: rgba(255, 255, 255, 0.82); text-anchor: middle; font-size: 12px; letter-spacing: 0.08em; }
+
+/* Durability state readout — a filled pill + bold label, colour-coded by phase
+   so the network-instability handling reads at a glance. */
+#recovery-label {
+  text-anchor: middle;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  fill: #fff;
+}
+#recovery-label[data-phase="stalled"]      { fill: #ffb99a; }
+#recovery-label[data-phase="reconnecting"] { fill: #ffe0a0; }
+#recovery-label[data-phase="recovered"]    { fill: #8ff0d2; }
+
+.state-pill { fill: rgba(0, 0, 0, 0.6); stroke-width: 1.5; }
+.state-pill[data-phase="stalled"]      { stroke: #f96; filter: drop-shadow(0 0 7px rgba(255, 153, 102, 0.75)); }
+.state-pill[data-phase="reconnecting"] { stroke: #fc6; filter: drop-shadow(0 0 7px rgba(255, 204, 102, 0.75)); }
+.state-pill[data-phase="recovered"]    { stroke: #0ea; filter: drop-shadow(0 0 8px rgba(0, 234, 170, 0.8)); }
+.state-pill[data-phase="static"]       { stroke: rgba(255, 255, 255, 0.5); }
+
+#reconnect-path {
+  fill: none;
+  stroke: #fc6;
+  stroke-width: 2.5;
+  stroke-dasharray: 7 5;
+  filter: drop-shadow(0 0 4px rgba(255, 204, 102, 0.6));
+  animation: reconnect-dash 0.6s linear infinite;
+}
+@keyframes reconnect-dash { to { stroke-dashoffset: -12; } }
+.resume-token { fill: #fc6; filter: drop-shadow(0 0 6px #fc6); pointer-events: none; }
+
+/* The one connection telling the durability story — brighter, glowing, so the
+   eye locks onto it in the ring while its phase changes. */
+.network-client[data-protagonist="true"] .client-identity-ring { stroke: rgba(255, 255, 255, 0.7); stroke-width: 1.5; }
+.network-client[data-protagonist="true"][data-state="stalled"] .client-node,
+.network-client[data-protagonist="true"][data-state="reconnecting"] .client-node,
+.network-client[data-protagonist="true"][data-state="recovered"] .client-node {
+  filter: drop-shadow(0 0 8px var(--client-color, #0cc));
+}
+#frame-inset { pointer-events: none; }
+.inset-cell { stroke: rgba(0, 204, 204, 0.22); stroke-width: 1; }
+.inset-codec { fill: #0cc; font-size: 11px; letter-spacing: 0.18em; text-transform: uppercase; }
+.inset-label { fill: rgba(255, 255, 255, 0.6); font-size: 11px; letter-spacing: 0.14em; }
+.inset-arrow { fill: rgba(0, 204, 204, 0.65); font-size: 10px; letter-spacing: 0.1em; }
+.inset-bytes { fill: rgba(0, 204, 204, 0.92); font-size: 13px; letter-spacing: 0.04em; }
+.inset-caption { fill: rgba(255, 255, 255, 0.45); font-size: 10px; letter-spacing: 0.08em; }
+.inset-codec, .inset-label, .inset-arrow, .inset-bytes, .inset-caption { font-family: 'Share Tech Mono', monospace; }
+.grace-label {
+  fill: #ffcf99;
+  text-anchor: middle;
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  font-family: 'Share Tech Mono', monospace;
+  filter: drop-shadow(0 0 6px rgba(255, 153, 102, 0.85));
+  pointer-events: none;
+}
+
+#legend-layer text { text-anchor: middle; fill: rgba(255, 255, 255, 0.78); }
+#legend-layer .legend-species { font-size: clamp(16px, 2vw, 24px); letter-spacing: 0.16em; }
+#legend-layer .legend-catalyst { fill: #0cc; }
+#legend-layer .legend-membrane { fill: #be8cff; }
+#legend-layer .legend-spore { fill: #ffa046; }
+#legend-cycle { font-size: clamp(10px, 1.2vw, 15px); letter-spacing: 0.08em; }
+
+.opening-line[data-beat="concurrency"] {
+  left: 16vw;
+  top: 35%;
+  width: min(390px, 34vw);
+  color: rgba(50, 230, 160, 0.85);
+}
+
+/* Title over the server illustration — labels the disconnect/reconnect demo.
+   Amber to match the stall/reconnect pills, so label and animation read as one.
+   Position and font-size are set per layout in paralife-opening.js. */
+#durability-title {
+  fill: #fc6;
+  text-anchor: middle;
+  letter-spacing: 0.2em;
+  font-family: 'Share Tech Mono', monospace;
+}
+
+/* -- Row 1: architecture SVG ------------------------------------------- */
+.arch-svg { max-width: 380px; }
+
+.arch-label-sm {
+  fill: rgba(0, 204, 204, 0.6);
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 13px;
+  text-anchor: middle;
+  dominant-baseline: central;
+}
+
+.arch-node-vt {
+  fill: rgba(190, 140, 255, 0.07);
+  stroke: rgba(190, 140, 255, 0.35);
+}
+
+.row-title-hero { align-self: end; }
+
+/* -- Row 2: carrier pinning -------------------------------------------- */
+.pin-compare {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  width: 100%;
+  max-width: 400px;
+}
+
+.pin-card {
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  padding: 14px 16px;
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.pin-card.pin-bad  { border-color: rgba(255, 102, 51, 0.32); }
+.pin-card.pin-good { border-color: rgba(0, 234, 170, 0.32); }
+
+.pin-code {
+  font-size: 14px;
+  color: rgba(255, 255, 255, 0.85);
+  letter-spacing: 0.04em;
+}
+
+.pin-track {
+  position: relative;
+  margin: 12px 0 10px;
+  height: 30px;
+  border-radius: 15px;
+  background: rgba(255, 255, 255, 0.05);
+  display: flex;
+  align-items: center;
+}
+
+.pin-carrier {
+  font-size: 11px;
+  letter-spacing: 0.14em;
+  color: rgba(255, 255, 255, 0.3);
+  padding-left: 14px;
+}
+
+.pin-vt {
+  position: absolute;
+  top: 3px;
+  height: 24px;
+  line-height: 24px;
+  padding: 0 12px;
+  border-radius: 12px;
+  font-size: 12px;
+  letter-spacing: 0.1em;
+}
+
+.pin-vt-stuck {
+  right: 8px;
+  background: rgba(255, 102, 51, 0.18);
+  color: #f63;
+  border: 1px solid rgba(255, 102, 51, 0.45);
+  animation: pin-stuck 2.4s ease-in-out infinite;
+}
+
+.pin-vt-free {
+  right: 8px;
+  background: rgba(0, 234, 170, 0.15);
+  color: #0ea;
+  border: 1px solid rgba(0, 234, 170, 0.45);
+  animation: pin-free 2.4s ease-in-out infinite;
+}
+
+@keyframes pin-stuck {
+  0%, 100% { transform: translateX(0); }
+  50%      { transform: translateX(-3px); }
+}
+
+@keyframes pin-free {
+  0%       { transform: translateX(0); opacity: 1; }
+  45%      { transform: translateX(-180px); opacity: 0.15; }
+  55%      { transform: translateX(-180px); opacity: 0.15; }
+  100%     { transform: translateX(0); opacity: 1; }
+}
+
+.pin-verdict {
+  font-size: 13px;
+  letter-spacing: 0.03em;
+}
+
+.pin-verdict-bad  { color: rgba(255, 130, 90, 0.9); }
+.pin-verdict-good { color: rgba(0, 234, 170, 0.9); }
+
+.pin-note {
+  margin-top: 5px;
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.34);
+}
+
+/* -- Row 3: backpressure flow ------------------------------------------ */
+.flow-svg {
+  width: 100%;
+  max-width: 440px;
+  height: auto;
+}
+
+.flow-node {
+  fill: rgba(0, 204, 204, 0.08);
+  stroke: rgba(0, 204, 204, 0.4);
+  stroke-width: 1.5;
+}
+
+.flow-fork-node { stroke: rgba(0, 204, 204, 0.6); }
+
+.flow-fork-glow { animation: fork-glow 2s ease-in-out infinite; }
+
+.flow-label {
+  fill: #0cc;
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 16px;
+  text-anchor: middle;
+  dominant-baseline: central;
+}
+
+.flow-sublabel {
+  fill: rgba(255, 255, 255, 0.4);
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 10px;
+  text-anchor: middle;
+  dominant-baseline: central;
+}
+
+.flow-path {
+  stroke: rgba(0, 204, 204, 0.45);
+  stroke-width: 2;
+  stroke-dasharray: 6 5;
+  animation: flow-dash 1.5s linear infinite;
+  fill: none;
+}
+
+@keyframes flow-dash {
+  to { stroke-dashoffset: -11; }
+}
+
+@keyframes fork-glow {
+  0%, 100% { opacity: 0.25; }
+  50%      { opacity: 1; }
+}
+
+.flow-branch-ok    { stroke: rgba(0, 234, 170, 0.6); }
+.flow-branch-retry { stroke: rgba(255, 102, 51, 0.55); }
+
+.flow-branch-label {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 12px;
+  dominant-baseline: central;
+}
+
+.flow-branch-label-ok {
+  fill: rgba(0, 234, 170, 0.75);
+  text-anchor: middle;
+}
+
+.flow-branch-label-retry {
+  fill: rgba(255, 130, 90, 0.75);
+  text-anchor: middle;
+}
+
+/* -- Row 4: golden-trace equivalence ----------------------------------- */
+.trace-compare {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  max-width: 420px;
+}
+
+.trace-side {
+  border: 1px solid rgba(0, 204, 204, 0.25);
+  border-radius: 12px;
+  padding: 14px 10px;
+  text-align: center;
+  background: rgba(0, 204, 204, 0.04);
+}
+
+.trace-label {
+  font-size: 11px;
+  letter-spacing: 0.12em;
+  color: rgba(255, 255, 255, 0.38);
+}
+
+.trace-hash {
+  margin: 8px 0 6px;
+  font-size: 16px;
+  color: #0cc;
+  word-break: break-all;
+}
+
+.trace-dim { color: rgba(0, 204, 204, 0.45); }
+
+.trace-sub {
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.34);
+}
+
+.trace-match {
+  font-size: 26px;
+  color: rgba(0, 234, 170, 0.9);
+  animation: pulse-match 2s ease-in-out infinite;
+}
+
+.trace-footer {
+  grid-column: 1 / -1;
+  text-align: center;
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  color: rgba(255, 255, 255, 0.32);
+}
+
+/* -- Responsive -------------------------------------------------------- */
+@media (max-width: 800px) {
+  .opening-line[data-beat="world"] {
+    left: 4vw;
+    right: 4vw;
+    top: 38%;
+    font-size: clamp(20px, 6vw, 30px);
+  }
+
+  .opening-line[data-beat="perception"],
+  .opening-line[data-beat="emergence"] {
+    width: 84vw;
+    font-size: clamp(18px, 5vw, 24px);
+  }
+
+  .opening-line[data-beat="concurrency"] {
+    left: 7vw;
+    right: 7vw;
+    top: 18%;
+    width: auto;
+    text-align: center;
+    font-size: clamp(19px, 5.4vw, 26px);
+  }
+
+  .trace-compare {
+    grid-template-columns: 1fr;
+  }
+
+  .trace-match { transform: rotate(90deg); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .opening-line,
+  #opening-visuals * {
+    transition: opacity 120ms linear;
+    animation: none !important;
+  }
+
+  .pin-vt-stuck,
+  .pin-vt-free,
+  .flow-path,
+  .flow-fork-glow,
+  .trace-match {
+    animation: none;
+  }
+}

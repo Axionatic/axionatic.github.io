@@ -46,8 +46,21 @@ const LERP_FACTOR = 0.12;     // per-frame exponential decay (scroll only)
 /** @type {number} */
 const MS_PER_QUAD = 2000;      // arrow/marker animation speed
 
+// Favicon rect coords, indexed to match QUADS (0:TR, 1:BR, 2:BL, 3:TL)
+/** @type {{ x: number, y: number }[]} */
+const FAVICON_RECTS = [
+  { x: 17, y: 5 },   // 0: TR
+  { x: 17, y: 17 },  // 1: BR
+  { x: 5,  y: 17 },  // 2: BL
+  { x: 5,  y: 5 },   // 3: TL
+];
+/** @type {number} */
+const FAVICON_SCROLL_THRESHOLD = 2 / 3;  // scroll-lerp progress before the favicon commits to the approaching quad
+
 /** @type {HTMLElement} */
 const page = document.getElementById('page');
+/** @type {HTMLLinkElement} */
+const faviconLink = document.querySelector('link[rel="icon"]');
 
 // --- State ---
 
@@ -59,6 +72,8 @@ let targetPosition = 0;  // lerp target (scroll wheel)
 let arrowAnim = null;    // active timed animation, or null
 /** @type {boolean} */
 let isBouncing = false;  // CSS-transition bounce in progress
+/** @type {number} */
+let faviconQuad = 0;     // matches favicon.svg's shipped default (TR)
 
 // --- Helpers ---
 
@@ -102,6 +117,30 @@ function findTargetPosition(targetQuad) {
     }
   }
   return best;
+}
+
+/**
+ * Build a favicon data URI with the given quad lit, matching favicon.svg's structure.
+ * @param {number} litQuad
+ * @returns {string}
+ */
+function faviconHref(litQuad) {
+  const rects = FAVICON_RECTS.map((r, i) =>
+    `<rect x="${r.x}" y="${r.y}" width="10" height="10" rx="1.5"${i === litQuad ? '' : ' opacity="0.22"'}/>`
+  ).join('');
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32"><rect width="32" height="32" rx="6" fill="#000"/><g fill="#0cc">${rects}</g></svg>`;
+  return `data:image/svg+xml,${encodeURIComponent(svg)}`;
+}
+
+/**
+ * Swap the favicon to reflect the given quad, if it isn't already showing it.
+ * @param {number} quad
+ * @returns {void}
+ */
+function setFaviconQuad(quad) {
+  if (quad === faviconQuad) return;
+  faviconQuad = quad;
+  faviconLink.href = faviconHref(quad);
 }
 
 /**
@@ -317,17 +356,29 @@ function tick() {
       // Normalize: strip full rotations so position stays near [0, 4)
       const fullRot = Math.floor(position / 4);
       if (fullRot !== 0) { position -= fullRot * 4; targetPosition -= fullRot * 4; }
+      setFaviconQuad(nearestQuad());
     }
   } else if (!isBouncing) {
     // Lerp toward target (scroll wheel)
     const dt = targetPosition - position;
     if (Math.abs(dt) > 0.0001) {
       position += dt * LERP_FACTOR;
+      // Commit the favicon once we're mostly into the quad we're heading toward
+      const floorPos = Math.floor(position);
+      const frac = position - floorPos;
+      if (dt > 0 && frac >= FAVICON_SCROLL_THRESHOLD) {
+        setFaviconQuad((((floorPos + 1) % 4) + 4) % 4);
+      } else if (dt < 0 && (1 - frac) >= FAVICON_SCROLL_THRESHOLD) {
+        setFaviconQuad(((floorPos % 4) + 4) % 4);
+      }
     } else {
       position = targetPosition;
       // Normalize: strip full rotations so position stays near [0, 4)
       const fullRot = Math.floor(position / 4);
       if (fullRot !== 0) { position -= fullRot * 4; targetPosition -= fullRot * 4; }
+      // No favicon call here: nearestQuad()'s 0.5 rounding would contradict the
+      // 2/3 threshold above for a scroll that comes to rest short of it (e.g.
+      // settling at 0.6) — the in-flight check is the sole source of truth.
     }
   }
 

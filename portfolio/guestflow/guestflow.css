@@ -124,123 +124,6 @@
   margin-bottom: 12px;
   letter-spacing: 0.1em;
 }
-.arch-label-sm {
-  fill: #0cc;
-  font-family: 'Share Tech Mono', monospace;
-  font-size: 14px;
-  text-anchor: middle;
-  dominant-baseline: central;
-}
-.cache-stack {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 0;
-  width: 100%;
-  max-width: 320px;
-}
-.cache-layer {
-  width: 100%;
-  background: rgba(0, 0, 0, 0.5);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 10px;
-  padding: 14px 16px;
-  text-align: center;
-}
-.cache-layer.cache-fast {
-  border-color: rgba(0, 234, 170, 0.4);
-  box-shadow: 0 0 15px rgba(0, 234, 170, 0.08);
-}
-.cache-layer.cache-persist {
-  border-color: rgba(0, 170, 255, 0.4);
-  box-shadow: 0 0 15px rgba(0, 170, 255, 0.08);
-}
-.cache-layer.cache-mint {
-  border-color: rgba(255, 150, 50, 0.4);
-  box-shadow: 0 0 15px rgba(255, 150, 50, 0.08);
-}
-.cache-label {
-  font-size: 14px;
-  text-transform: uppercase;
-  letter-spacing: 0.1em;
-  margin-bottom: 6px;
-}
-.cache-fast .cache-label { color: rgba(0, 234, 170, 0.7); }
-.cache-persist .cache-label { color: rgba(0, 170, 255, 0.7); }
-.cache-mint .cache-label { color: rgba(255, 150, 50, 0.7); }
-.cache-detail {
-  font-size: 14px;
-  color: rgba(255, 255, 255, 0.7);
-  line-height: 1.5;
-}
-.cache-arrow {
-  color: rgba(0, 204, 204, 0.3);
-  font-size: 20px;
-  padding: 4px 0;
-  animation: pulse-arrow 2s ease-in-out infinite;
-}
-/* -- Security & resilience flow SVG ------------------------------------ */
-.flow-svg {
-  width: 100%;
-  max-width: 440px;
-  height: auto;
-}
-.flow-node {
-  fill: rgba(0, 204, 204, 0.08);
-  stroke: rgba(0, 204, 204, 0.4);
-  stroke-width: 1.5;
-}
-.flow-fork-node {
-  stroke: rgba(0, 204, 204, 0.6);
-}
-.flow-fork-glow {
-  animation: fork-glow 2s ease-in-out infinite;
-}
-.flow-label {
-  fill: #0cc;
-  font-family: 'Share Tech Mono', monospace;
-  font-size: 16px;
-  text-anchor: middle;
-  dominant-baseline: central;
-}
-.flow-sublabel {
-  fill: rgba(255, 255, 255, 0.4);
-  font-family: 'Share Tech Mono', monospace;
-  font-size: 10px;
-  text-anchor: middle;
-  dominant-baseline: central;
-}
-.flow-path {
-  stroke: rgba(0, 204, 204, 0.45);
-  stroke-width: 2;
-  stroke-dasharray: 6 5;
-  animation: flow-dash 1.5s linear infinite;
-  fill: none;
-}
-.flow-branch-ok {
-  stroke: rgba(255, 180, 50, 0.6);
-}
-.flow-branch-retry {
-  stroke: rgba(0, 204, 204, 0.6);
-}
-.flow-branch-label {
-  font-family: 'Share Tech Mono', monospace;
-  font-size: 12px;
-  dominant-baseline: central;
-}
-.flow-branch-label-ok {
-  fill: rgba(255, 180, 50, 0.7);
-}
-.flow-branch-label-retry {
-  fill: rgba(0, 204, 204, 0.7);
-}
-@keyframes flow-dash {
-  to { stroke-dashoffset: -11; }
-}
-@keyframes fork-glow {
-  0%, 100% { opacity: 0.25; }
-  50%      { opacity: 1; }
-}
 
 /* ── Responsive ──────────────────────────────────────────────────── */
 @media (max-width: 1200px) {
@@ -323,8 +206,123 @@
   }
 }
 
-@media (prefers-reduced-motion: reduce) {
-  .cache-arrow { animation: none; opacity: 0.6; }
-  .flow-path { animation: none; }
-  .flow-fork-glow { animation: none; opacity: 0.5; }
+/* -- Proof of payment: capture gate ----------------------------------------------- */
+.gate-ladder {
+  width: 100%;
+  max-width: 400px;
+  border: 1px solid rgba(0, 204, 204, 0.22);
+  border-radius: 12px;
+  padding: 14px 16px;
+  background: rgba(0, 204, 204, 0.03);
+}
+.gate-header {
+  font-size: 12px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: rgba(0, 204, 204, 0.7);
+  margin-bottom: 12px;
+}
+.gate-step {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 8px 0;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+}
+.gate-q {
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.72);
+  line-height: 1.35;
+}
+.gate-q em {
+  font-style: normal;
+  color: rgba(255, 255, 255, 0.42);
+}
+.gate-a {
+  flex: none;
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  padding: 3px 8px;
+  border-radius: 10px;
+  white-space: nowrap;
+}
+.gate-a-no {
+  color: #f96;
+  background: rgba(255, 102, 51, 0.12);
+  border: 1px solid rgba(255, 102, 51, 0.35);
+}
+.gate-a-yes {
+  color: #0ea;
+  background: rgba(0, 234, 170, 0.12);
+  border: 1px solid rgba(0, 234, 170, 0.4);
+}
+.gate-outcome {
+  margin-top: 12px;
+  padding-top: 10px;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+  font-size: 12px;
+  color: rgba(255, 180, 100, 0.75);
+}
+
+/* -- One Worker per client: fleet ------------------------------------------------ */
+.fleet-wrap {
+  width: 100%;
+  max-width: 400px;
+  text-align: center;
+}
+.fleet-source {
+  display: inline-block;
+  padding: 7px 16px;
+  border-radius: 10px;
+  border: 1px solid rgba(0, 204, 204, 0.45);
+  background: rgba(0, 204, 204, 0.08);
+  color: #0cc;
+  font-size: 13px;
+}
+.fleet-arrow {
+  margin: 8px 0;
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.35);
+}
+.fleet-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+}
+.fleet-client {
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 10px;
+  padding: 10px 6px;
+  background: rgba(255, 255, 255, 0.02);
+}
+.fleet-name {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.8);
+}
+.fleet-sub {
+  margin-top: 3px;
+  font-size: 10px;
+  color: rgba(255, 255, 255, 0.32);
+}
+.fleet-sha {
+  margin-top: 6px;
+  font-size: 10px;
+  color: rgba(0, 204, 204, 0.6);
+}
+.fleet-client.fleet-drift {
+  border-color: rgba(255, 180, 50, 0.5);
+  background: rgba(255, 180, 50, 0.06);
+}
+.fleet-drift .fleet-sha {
+  color: rgba(255, 180, 50, 0.9);
+}
+.fleet-alert {
+  margin-top: 10px;
+  font-size: 11px;
+  color: rgba(255, 180, 50, 0.7);
+}
+
+@media (max-width: 600px) {
+  .gate-step { flex-direction: column; align-items: flex-start; gap: 5px; }
 }

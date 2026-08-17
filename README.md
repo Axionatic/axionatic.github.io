@@ -1,2 +1,2 @@
 # mark-dingwall.github.io
-Mark's website, full of things I've made for fun
+Mark's website. Portfolio, sketches, shader magic

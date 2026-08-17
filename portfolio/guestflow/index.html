@@ -4,6 +4,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg">
   <title>Mark Dingwall - Guestflow</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -31,12 +32,14 @@
   <div id="canvas-container"></div>
   <div id="header-panel">
     <h1 id="title-overlay">Guestflow</h1>
-    <div id="subtitle">property sync system</div>
+    <div id="subtitle">direct booking platform</div>
   </div>
   <div id="narrative-panel">
     <div class="narrative-line">Every listing site makes your property look the same as the rest.</div>
-    <div class="narrative-line">A custom front-end changes the game — but only if it stays in sync.</div>
-    <div class="narrative-line">Guestflow keeps it live. Real pricing, live calendars, direct bookings.</div>
+    <div class="narrative-line">A custom front-end changes that — but only if it stays in sync.</div>
+    <div class="narrative-line">Guestflow keeps it live: real pricing, real calendars, direct bookings.</div>
+    <div class="narrative-line">A booking is confirmed only once the card has actually paid.</div>
+    <div class="narrative-line">One codebase. One Worker per client. Nothing shared.</div>
   </div>
   <div id="pipeline" style="display:none">
     <div class="pipeline-header">System components</div>
@@ -92,98 +95,87 @@
         <h2 class="row-title row-title-hero">Architecture</h2>
         <div class="row-text">
           <ul>
-            <li>Server exists only for what needs auth — everything else is edge-cached</li>
-            <li>5 embeddable widgets communicate via DOM events, not a shared runtime</li>
-            <li>Zod schemas guard every boundary — Guesty's real payloads diverge from their docs</li>
-            <li>Webhook-driven: no polling, no cron — listings sync on every change</li>
+            <li>The server handles only what needs auth. The rest is edge-cached</li>
+            <li>Guesty allows 5 tokens a day, so two cache tiers absorb cold starts</li>
+            <li>Zod guards every boundary — Guesty's payloads diverge from its docs</li>
+            <li>Signed webhooks sync on change. Permanent errors return 200, not a retry storm</li>
           </ul>
         </div>
       </div>
 
-      <!-- Row 2: Caching under constraints — text left, visual right -->
+      <!-- Row 2: Proof of payment — text left, visual right -->
       <div class="row row--reverse">
         <div class="row-visual">
-          <div class="cache-stack">
-            <div class="cache-layer cache-fast">
-              <div class="cache-label">In-Memory</div>
-              <div class="cache-detail">Per-worker, fastest lookup</div>
-              <div class="cache-detail">Lost on cold start</div>
+          <div class="gate-ladder">
+            <div class="gate-header">did the card actually pay?</div>
+            <div class="gate-step">
+              <span class="gate-q">reservation created</span>
+              <span class="gate-a gate-a-no">not proof</span>
             </div>
-            <div class="cache-arrow">&darr; miss</div>
-            <div class="cache-layer cache-persist">
-              <div class="cache-label">CF Cache API</div>
-              <div class="cache-detail">Persistent, shared across workers</div>
-              <div class="cache-detail">Survives restarts</div>
+            <div class="gate-step">
+              <span class="gate-q">payment still <em>pending</em></span>
+              <span class="gate-a gate-a-no">a failure</span>
             </div>
-            <div class="cache-arrow">&darr; miss</div>
-            <div class="cache-layer cache-mint">
-              <div class="cache-label">OAuth Mint</div>
-              <div class="cache-detail">Guesty API call</div>
-              <div class="cache-detail">5 per 24 hours</div>
+            <div class="gate-step">
+              <span class="gate-q"><em>succeeded</em> + paid-at stamp + non-zero total</span>
+              <span class="gate-a gate-a-yes">paid</span>
             </div>
+            <div class="gate-outcome">anything else &rarr; cancel the unpaid hold</div>
           </div>
         </div>
-        <h2 class="row-title">Caching under constraints</h2>
+        <h2 class="row-title">Proof of payment</h2>
         <div class="row-text">
           <ul>
-            <li>Guesty caps OAuth tokens at 5/day &mdash; Workers cold-start and lose memory</li>
-            <li>Two-tier cache: in-memory for speed, CF Cache API for persistence across restarts</li>
-            <li>Refresh lock prevents a thundering herd of simultaneous token mints</li>
-            <li>Accepted trade-off: one extra token per day worst-case, not five</li>
+            <li>Two payment rails, GuestyPay and Stripe, behind one interface</li>
+            <li>Card data never touches the server. The payment SDK holds it</li>
+            <li>A created reservation isn't proof. Pending counts as a failure</li>
+            <li>Unpaid holds cancel themselves, but only for allow-listed platforms</li>
           </ul>
         </div>
       </div>
 
-      <!-- Row 3: Security & resilience — visual left, text right -->
+      <!-- Row 3: One Worker per client — visual left, text right -->
       <div class="row">
         <div class="row-visual">
-          <svg class="flow-svg" viewBox="0 0 520 180" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <defs>
-              <filter id="fork-glow" x="-50%" y="-50%" width="200%" height="200%">
-                <feGaussianBlur stdDeviation="6"/>
-              </filter>
-            </defs>
-            <!-- Paths -->
-            <path class="flow-path" d="M 96 90 L 176 90"/>
-            <path class="flow-path" d="M 264 90 L 344 90"/>
-            <path class="flow-path flow-branch-ok"    d="M 432 90 C 450 90, 460 60, 480 60"/>
-            <path class="flow-path flow-branch-retry" d="M 432 90 C 450 90, 460 120, 480 120"/>
-            <!-- Nodes -->
-            <rect class="flow-node" x="8"   y="66" width="88" height="48" rx="24"/>
-            <text class="flow-label" x="52"  y="86">Auth</text>
-            <text class="flow-sublabel" x="52" y="104">HMAC / Bearer</text>
-            <rect class="flow-node" x="176" y="66" width="88" height="48" rx="24"/>
-            <text class="flow-label" x="220" y="86">Validate</text>
-            <text class="flow-sublabel" x="220" y="104">Zod schema</text>
-            <!-- Fork node with glow -->
-            <rect class="flow-fork-glow" x="344" y="66" width="88" height="48" rx="24"
-                  fill="rgba(0,204,204,0.2)" filter="url(#fork-glow)"/>
-            <rect class="flow-node flow-fork-node" x="344" y="66" width="88" height="48" rx="24"/>
-            <text class="flow-label" x="388" y="86">Route</text>
-            <text class="flow-sublabel" x="388" y="104">classify error</text>
-            <!-- Branch labels -->
-            <text class="flow-branch-label flow-branch-label-ok"    x="500" y="64">200 stop</text>
-            <text class="flow-branch-label flow-branch-label-retry" x="500" y="124">5xx retry</text>
-          </svg>
+          <div class="fleet-wrap">
+            <div class="fleet-source">one source repo</div>
+            <div class="fleet-arrow">&darr; CI publishes a filtered snapshot</div>
+            <div class="fleet-grid">
+              <div class="fleet-client">
+                <div class="fleet-name">client a</div>
+                <div class="fleet-sub">own Worker</div>
+                <div class="fleet-sha">sha 4f2a1c</div>
+              </div>
+              <div class="fleet-client">
+                <div class="fleet-name">client b</div>
+                <div class="fleet-sub">own Worker</div>
+                <div class="fleet-sha">sha 4f2a1c</div>
+              </div>
+              <div class="fleet-client fleet-drift">
+                <div class="fleet-name">client c</div>
+                <div class="fleet-sub">own Worker</div>
+                <div class="fleet-sha">sha 9b07e3</div>
+              </div>
+            </div>
+            <div class="fleet-alert">a nightly check flags the one left behind</div>
+          </div>
         </div>
-        <h2 class="row-title">Security &amp; resilience</h2>
+        <h2 class="row-title">One Worker per client</h2>
         <div class="row-text">
           <ul>
-            <li>Svix HMAC-SHA256 with Bearer fallback for zero-downtime auth migration</li>
-            <li>Returns 200 for permanent errors — prevents Svix retry storms</li>
-            <li>Real 5xx codes for transient failures let the retry queue do its job</li>
-            <li>Card data never touches the server — PCI compliance via SDK delegation</li>
+            <li>Every client gets its own Worker, its own secrets, its own cache</li>
+            <li>Isolation is structural, not a WHERE clause someone can forget</li>
+            <li>CI ships an allow-listed snapshot, so admin code can't reach a client</li>
+            <li>A build test fails if admin code leaks into the client package</li>
           </ul>
         </div>
       </div>
-
     </div>
 
     <footer class="tech-footer">
-      Sole developer <span>&middot;</span> ~4,600 lines <span>&middot;</span> 27 test suites <span>&middot;</span>
-      Next.js 15 <span>&middot;</span> TypeScript <span>&middot;</span>
-      Cloudflare Workers <span>&middot;</span> Zod <span>&middot;</span> Vitest <span>&middot;</span>
-      esbuild <span>&middot;</span> Webflow API <span>&middot;</span> Guesty API
+      Sole developer <span>&middot;</span> Next.js 15 <span>&middot;</span> TypeScript <span>&middot;</span>
+      Cloudflare Workers <span>&middot;</span> D1 <span>&middot;</span> Zod <span>&middot;</span>
+      Stripe <span>&middot;</span> Webflow API <span>&middot;</span> Guesty API
     </footer>
   </div>
 

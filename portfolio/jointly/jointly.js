@@ -800,10 +800,13 @@ function init() {
 
         // Move panel up, then switch to absolute so it scrolls with content
         if (p >= 1) {
-          if (headerPanelEl.style.position !== 'absolute') {
-            headerPanelEl.style.position = 'absolute';
-            headerPanelEl.style.top = (window.scrollY + 16) + 'px';
-          }
+          // Park at the trigger's own end rather than the live scroll
+          // position: scrollY can overshoot `end` between two onUpdate calls
+          // on a fast or momentum scroll, which stranded the panel in the
+          // middle of the tech rows. Assigned on every update, not just on
+          // the transition, so it survives a resize recomputing `end`.
+          headerPanelEl.style.position = 'absolute';
+          headerPanelEl.style.top = (self.end + 16) + 'px';
         } else {
           headerPanelEl.style.position = 'fixed';
           headerPanelEl.style.top = lerp(H * 0.04, 16, p) + 'px';

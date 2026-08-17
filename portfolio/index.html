@@ -4,6 +4,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Major+Mono+Display&family=Share+Tech+Mono&display=swap" rel="stylesheet">
@@ -25,10 +26,21 @@
 
   <header class="gallery-header">
     <h1 id="title-text">Portfolio</h1>
-    <p class="subtitle">Some of my work</p>
+    <p class="subtitle">Systems I've built, taken apart</p>
   </header>
 
   <div class="gallery">
+    <a href="paralife/" class="card" data-project="paralife">
+      <canvas></canvas>
+      <div class="card-info">
+        <h2>paralife</h2>
+        <p class="tagline">Real-time simulation server</p>
+        <div class="card-tech">
+          <span>Java 21</span><span>Virtual Threads</span><span>Spring Boot</span><span>WebSocket</span>
+        </div>
+      </div>
+    </a>
+
     <a href="jointly/" class="card" data-project="jointly">
       <canvas></canvas>
       <div class="card-info">
@@ -66,9 +78,9 @@
       <canvas></canvas>
       <div class="card-info">
         <h2>guestflow</h2>
-        <p class="tagline">Automated listing pipeline</p>
+        <p class="tagline">Multi-tenant direct booking platform</p>
         <div class="card-tech">
-          <span>Next.js</span><span>Workers</span><span>Guesty API</span><span>Webflow</span>
+          <span>Next.js</span><span>Workers</span><span>Stripe</span><span>D1</span>
         </div>
       </div>
     </a>

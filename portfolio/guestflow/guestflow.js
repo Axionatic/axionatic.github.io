@@ -132,10 +132,14 @@ const COMPONENT_TIPS = [
   ],
 ];
 
+// One entry per .narrative-line, in order. Each keyframe is [progress, slide, opacity].
+// Must stay the same length as the markup — a missing entry breaks the render loop.
 const LINE_KEYFRAMES = [
-  [[0, 0, 1], [0.22, 0, 1], [0.34, 1, 0]],
-  [[0.26, 1, 0], [0.38, 0, 1], [0.54, 0, 1], [0.66, 1, 0]],
-  [[0.58, 1, 0], [0.70, 0, 1], [1.0, 0, 1]],
+  [[0, 0, 1], [0.13, 0, 1], [0.20, 1, 0]],
+  [[0.16, 1, 0], [0.23, 0, 1], [0.33, 0, 1], [0.40, 1, 0]],
+  [[0.36, 1, 0], [0.43, 0, 1], [0.53, 0, 1], [0.60, 1, 0]],
+  [[0.56, 1, 0], [0.63, 0, 1], [0.73, 0, 1], [0.80, 1, 0]],
+  [[0.76, 1, 0], [0.83, 0, 1], [1.0, 0, 1]],
 ];
 
 // ---------------------------------------------------------------------------
@@ -886,10 +890,13 @@ function init() {
 
         // Move panel up, then switch to absolute so it scrolls with content
         if (p >= 1) {
-          if (headerPanelEl.style.position !== 'absolute') {
-            headerPanelEl.style.position = 'absolute';
-            headerPanelEl.style.top = (window.scrollY + 16) + 'px';
-          }
+          // Park at the trigger's own end rather than the live scroll
+          // position: scrollY can overshoot `end` between two onUpdate calls
+          // on a fast or momentum scroll, which stranded the panel in the
+          // middle of the tech rows. Assigned on every update, not just on
+          // the transition, so it survives a resize recomputing `end`.
+          headerPanelEl.style.position = 'absolute';
+          headerPanelEl.style.top = (self.end + 16) + 'px';
         } else {
           headerPanelEl.style.position = 'fixed';
           headerPanelEl.style.top = lerp(H * 0.04, 16, p) + 'px';
