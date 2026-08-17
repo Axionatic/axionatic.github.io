@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-Mark Dingwall's personal website ([axionatic.github.io](https://axionatic.github.io)), with portfolio pieces, creative coding sketches, and [BitBrush](https://github.com/Axionatic/BitBrush) - a multiplayer pixel canvas powered by Spring Boot. A static site — no build step, no package manager, no bundler. Open any `index.html` directly in a browser or use a local server (e.g. `python3 -m http.server`). Deploy by pushing to `main` (GitHub Pages). Live at [mark.dingwall.com.au](https://mark.dingwall.com.au)
+Mark Dingwall's personal website ([mark-dingwall.github.io](https://mark-dingwall.github.io)), with portfolio pieces, creative coding sketches, and [BitBrush](https://github.com/mark-dingwall/BitBrush) - a multiplayer pixel canvas powered by Spring Boot. A static site — no build step, no package manager, no bundler. Open any `index.html` directly in a browser or use a local server (e.g. `python3 -m http.server`). Deploy by pushing to `main` (GitHub Pages). Live at [mark.dingwall.com.au](https://mark.dingwall.com.au)
 
 ## Architecture
 
