@@ -243,9 +243,11 @@
     const TICK_PERIOD = 1.0;   // seconds per illustrated tick
     const FANOUT_START = 0.12; // packets leave after the tick's stages "run"
     const FANOUT_SPAN = 0.5;   // fraction of the tick spent in flight
-    // Base-64 of the 25-bit view value → 5 fixed chars (denser than hex).
-    const B64 = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/';
-    const b64 = (n) => { let s = ''; for (let i = 4; i >= 0; i--) s += B64[(n >> (i * 6)) & 63]; return s; };
+    // Paralife's real wire alphabet (Base64Codec.java): digit-first, _- as 62/63.
+    // fx = fixed-width, vr = variable-width — both big-endian, matching the codec.
+    const A64 = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz_-';
+    const fx = (v, w) => { let s = ''; for (let i = 0; i < w; i++) { s = A64[v & 63] + s; v >>= 6; } return s; };
+    const vr = (v) => { let s = A64[v & 63]; v >>= 6; while (v > 0) { s = A64[v & 63] + s; v >>= 6; } return s; };
     const FAN_STAGGER = 0.16;  // spread across connections, so it reads as fan-out
 
     function render({ progress, techFade, viewport, windows, ambientTime }) {
@@ -408,7 +410,7 @@
         insetCodec.style.fontSize = (big ? 12 : 10) + 'px';
         insetLabel.style.fontSize = (big ? 15 : 13) + 'px';
         insetArrow.style.fontSize = (big ? 12 : 10) + 'px';
-        insetBytes.style.fontSize = (big ? 19 : 14) + 'px';
+        insetBytes.style.fontSize = (big ? 16 : 12) + 'px';
         insetCaption.style.fontSize = (big ? 12 : 10) + 'px';
         const ix = big ? viewport.width * 0.05 : viewport.width * 0.08;
         let iy;
@@ -434,13 +436,14 @@
         [insetCodec, insetLabel, insetArrow, insetBytes, insetCaption].forEach((t) => t.setAttribute('text-anchor', anchor));
         const tick = Math.floor(ambientTime / TICK_PERIOD);
         const species = ['#0cc', '#be8cff', '#ffa046'];
+        const KINDS = 'CMSDNTF'; // real SCHEMA §8.1.1 kind codes
         insetCodec.setAttribute('x', textX.toFixed(2));
         insetCodec.setAttribute('y', iy.toFixed(2));
         insetLabel.setAttribute('x', textX.toFixed(2));
         insetLabel.setAttribute('y', labelY.toFixed(2));
-        // Serialize the grid as we lay it out: each lit non-self cell sets a bit,
-        // so view-bits below is literally this grid, and it churns every tick.
-        let viewBits = 0, seen = 0;
+        // Lay out the grid and collect the lit (occupied) cells as we go — they
+        // feed the s-block below, so the frame tracks the vision the reader sees.
+        const litCells = [];
         insetCells.forEach((r, k) => {
           const gx = k % 5, gy = (k / 5) | 0;
           r.setAttribute('x', (gridX + gx * cell).toFixed(2));
@@ -449,20 +452,22 @@
           r.setAttribute('height', String(cell - 2));
           const center = gx === 2 && gy === 2;
           // Spatial hash decorrelates cells across ticks, so both the pattern
-          // and the lit-count (seen) vary organically frame to frame.
+          // and the occupied-count vary organically frame to frame.
           const h = ((gx * 73856093) ^ (gy * 19349663) ^ (tick * 83492791)) >>> 0;
           const lit = h % 100 < 38;
-          if (!center && lit) { viewBits |= 1 << k; seen++; }
+          if (!center && lit) litCells.push([gx - 2, gy - 2, KINDS[h % KINDS.length]]);
           r.setAttribute('fill', center ? '#fff' : lit ? species[h % 3] : 'rgba(0,204,204,0.05)');
         });
         const gridBottom = gridTop + gridH;
-        // Wire frame: tick | entity-id (held constant — the identity that
-        // survives the stall) | cells seen | view bitmap (base-64) | checksum.
-        const tick3 = String(tick % 1000).padStart(3, '0');
-        const body = `${tick3}|0A1B|${String(seen).padStart(2, '0')}|${b64(viewBits)}`;
-        let sum = 0;
-        for (let i = 0; i < body.length; i++) sum = (sum + body.charCodeAt(i)) & 0xff;
-        const frame = `${body}|${sum.toString(16).toUpperCase().padStart(2, '0')}`;
+        // A real-shaped Paralife T-frame (SCHEMA §6.3.1), illustrative not exact:
+        //   T | tickId(3) | curX(2)curY(2) | energy/max | sensorRadius | s<cells>
+        // Position is held constant (the identity that survives the stall); energy
+        // drifts; the s-block lists a few visible cells as <relCoord><presence><kind>.
+        const rel = (d) => (d >= 0 ? '+' : '-') + A64[Math.abs(d)];
+        const sBlock = litCells.slice(0, big ? 4 : 3)
+          .map(([dx, dy, kind]) => `${rel(dx)}${rel(dy)}1${kind}`).join(',');
+        const energy = 24 + (tick % 25);
+        const frame = `T|${fx(tick % 262144, 3)}|0A1B|${vr(energy)}/m|2|s${sBlock}`;
         insetArrow.style.display = big ? '' : 'none';
         insetArrow.setAttribute('x', textX.toFixed(2));
         insetArrow.setAttribute('y', (gridBottom + 24).toFixed(2));
@@ -472,7 +477,7 @@
         insetBytes.textContent = frame;
         insetCaption.setAttribute('x', textX.toFixed(2));
         insetCaption.setAttribute('y', (gridBottom + (big ? 70 : 30)).toFixed(2));
-        insetCaption.textContent = 'tick | id | seen | view-bits | crc';
+        insetCaption.textContent = 'T | tick | x y | energy/max | radius | s: cells';
       }
       serverLabel.setAttribute('x', server.x.toFixed(2));
       serverLabel.setAttribute('y', (server.y + 4).toFixed(2));
