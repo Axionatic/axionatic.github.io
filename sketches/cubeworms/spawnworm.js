@@ -71,6 +71,10 @@ export class Spawnworm extends Cubeworm {
       this._animStep++;
 
       if (this._animStep > 2) {
+        // The main loop re-reads worms[i] after update(), so the successor's
+        // display() runs this frame, not ours — snap the main cube to full
+        // size now or it stays permanently short of 1.0.
+        this.slot().updateMainScale(1);
         const ctx = getWormContext();
         if (ctx.lure && ctx.lure.isActive()) {
           ctx.worms[this.id()] = new ctx.HypnowormClass(this);

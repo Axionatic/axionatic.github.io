@@ -166,6 +166,7 @@ export class Explodeworm extends Pushworm {
     this._spheres = [];
     vGroup.remove(this._faceTrailMesh);
     this._faceTrailMesh.material.dispose();  // geometry is shared, don't dispose
+    this._faceTrailMesh.dispose();           // frees the instanceMatrix GPU buffer
     this._faceTrailMesh = null;
     getWormContext().worms[this._id] = new Sleepworm(this);
   }

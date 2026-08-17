@@ -26,7 +26,9 @@ export class Roamworm extends Cubeworm {
       this._pulseSpeed = src._pulseSpeed;
       this._pulseAnim = src._pulseAnim;
     } else if (idOrSource instanceof Cubeworm) {
-      // Transitioning from non-Roamworm Cubeworm (e.g. Spawnworm, Recoverworm).
+      // Transitioning from non-Roamworm Cubeworm (e.g. Spawnworm). Note:
+      // Recoverworm extends Travelworm extends Roamworm, so it takes the
+      // branch above and keeps its thruster/pulse state.
       // pos/vel/facecubes already initialised by source; just init roam-specific state.
       this._initRoam();
     } else {

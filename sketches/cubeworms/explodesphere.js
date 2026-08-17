@@ -102,5 +102,6 @@ export class ExplodeSphere {
     verticesGroup.remove(this._mesh);
     // _starGeo is shared — don't dispose it
     this._mesh.material.dispose();
+    this._mesh.dispose();  // frees the instanceMatrix GPU buffer
   }
 }

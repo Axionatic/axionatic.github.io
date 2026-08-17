@@ -202,7 +202,7 @@ window.addEventListener('keydown', (e) => {
 });
 
 // resize handler
-window.addEventListener('resize', () => {
+function handleResize() {
   const w = window.innerWidth;
   const h = window.innerHeight;
   initRuntimeSettings(w, h);
@@ -210,13 +210,23 @@ window.addEventListener('resize', () => {
   camera.near = CAMERA_Z / NEAR_CLIP_DIVISOR;
   camera.position.z = CAMERA_Z;
   camera.updateProjectionMatrix();
+  renderer.setPixelRatio(window.devicePixelRatio);
   renderer.setSize(w, h);
   pipeline.resize(renderer.domElement.width, renderer.domElement.height);
   edgesResolution.set(w, h);
   for (let i = 0; i < WORM_COUNT; i++) {
     worms[i].slot().updateResolution(w, h);
   }
-});
+}
+window.addEventListener('resize', handleResize);
+
+// A monitor move can change devicePixelRatio without firing resize —
+// matchMedia is the reliable signal; re-arm per ratio (MDN pattern).
+function watchPixelRatio() {
+  matchMedia(`(resolution: ${window.devicePixelRatio}dppx)`)
+    .addEventListener('change', () => { handleResize(); watchPixelRatio(); }, { once: true });
+}
+watchPixelRatio();
 
 // ─── Animation loop ───────────────────────────────────────────────────────
 
@@ -224,12 +234,8 @@ const FRAME_MS = 1000 / 60;
 let lastTime = 0;
 let frameCount = 0;
 
-function animate(now) {
-  requestAnimationFrame(animate);
-  if (now - lastTime < FRAME_MS) return;
-  lastTime = now;
+function step() {
   frameCount++;
-
   for (let i = 0; i < WORM_COUNT; i++) {
     worms[i].update();
     worms[i].display();
@@ -238,6 +244,31 @@ function animate(now) {
 
   lure.update(frameCount);
   lure.display();
+}
+
+function animate(now) {
+  requestAnimationFrame(animate);
+  if (now - lastTime < FRAME_MS) return;
+  // Fixed-step with bounded catch-up: up to 4 logical steps per callback, so
+  // non-60Hz-multiple refresh rates AND sub-60fps delivery (GPU load, power
+  // throttling) both average 60 logical steps/sec, down to 15fps delivered;
+  // below that, slow motion.
+  // (+1e-6 step absorbs double-rounding: 4-frame debt can divide to 3.9999…)
+  let steps = Math.floor((now - lastTime) / FRAME_MS + 1e-6);
+  if (steps > 4) {
+    // Genuine backlog: run the cap, carry at most two frames of the excess —
+    // ordinary jitter near the cap boundary must not be mistaken for a stall
+    // — and discard the rest, so a background-tab gap resumes cleanly with at
+    // most two catch-up frames. Accepted residuals (discard = slow-motion,
+    // never fast-forward): smooth σ=8ms jitter at the ~15fps boundary loses
+    // ~1.4% of steps; recurring multi-frame stalls (GC, thermal throttling)
+    // lose ~2-9% while they persist.
+    lastTime = now - Math.min(now - (lastTime + 4 * FRAME_MS), 2 * FRAME_MS);
+    steps = 4;
+  } else {
+    lastTime += steps * FRAME_MS;
+  }
+  while (steps-- > 0) step();
 
   pipeline.render();
 }

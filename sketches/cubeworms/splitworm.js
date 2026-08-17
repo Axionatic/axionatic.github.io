@@ -371,10 +371,14 @@ export class Splitworm extends Cubeworm {
     fGroup.remove(this._fragFaceMesh);
     vGroup.remove(this._fragVertMesh);
     vGroup.remove(this._glimmerMesh);
-    // Dispose materials only — geometries are shared and must not be disposed
+    // Dispose materials and the meshes themselves (frees their instanceMatrix
+    // GPU buffers) — shared geometries must not be disposed
     this._fragFaceMesh.material.dispose();
     this._fragVertMesh.material.dispose();
     this._glimmerMesh.material.dispose();
+    this._fragFaceMesh.dispose();
+    this._fragVertMesh.dispose();
+    this._glimmerMesh.dispose();
   }
 
   lurePlaced()    {}  // ignore beacon events while fragmenting
