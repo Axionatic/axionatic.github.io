@@ -227,7 +227,6 @@
     });
     const insetArrow = document.createElementNS(SVG_NS, 'text');
     insetArrow.classList.add('inset-arrow');
-    insetArrow.textContent = 'projected · encoded ↓';
     const insetBytes = document.createElementNS(SVG_NS, 'text');
     insetBytes.classList.add('inset-bytes');
     const insetCaption = document.createElementNS(SVG_NS, 'text');
@@ -428,6 +427,9 @@
         const species = ['#0cc', '#be8cff', '#ffa046'];
         insetLabel.setAttribute('x', textX.toFixed(2));
         insetLabel.setAttribute('y', iy.toFixed(2));
+        // Serialize the grid as we lay it out: each lit non-self cell sets a bit,
+        // so view-bits below is literally this grid, and it churns every tick.
+        let viewBits = 0, seen = 0;
         insetCells.forEach((r, k) => {
           const gx = k % 5, gy = (k / 5) | 0;
           r.setAttribute('x', (gridX + gx * cell).toFixed(2));
@@ -436,19 +438,28 @@
           r.setAttribute('height', String(cell - 2));
           const center = gx === 2 && gy === 2;
           const lit = (gx * 7 + gy * 13 + tick * 5) % 4 === 0;
+          if (!center && lit) { viewBits |= 1 << k; seen++; }
           r.setAttribute('fill', center ? '#fff' : lit ? species[(gx + gy + tick) % 3] : 'rgba(0,204,204,0.05)');
         });
         const gridBottom = gridTop + gridH;
-        const frame = `T|${String(tick % 1000).padStart(3, '0')}|0A1B|15/80|2|s7C1F`;
+        // Wire frame: tick | entity-id (held constant — the identity that
+        // survives the stall) | cells seen | view bitmap (hex) | checksum.
+        const tick3 = String(tick % 1000).padStart(3, '0');
+        const viewHex = viewBits.toString(16).toUpperCase().padStart(7, '0');
+        const body = `${tick3}|0A1B|${String(seen).padStart(2, '0')}|${viewHex}`;
+        let sum = 0;
+        for (let i = 0; i < body.length; i++) sum = (sum + body.charCodeAt(i)) & 0xff;
+        const frame = `${body}|${sum.toString(16).toUpperCase().padStart(2, '0')}`;
         insetArrow.style.display = big ? '' : 'none';
         insetArrow.setAttribute('x', textX.toFixed(2));
         insetArrow.setAttribute('y', (gridBottom + 24).toFixed(2));
+        insetArrow.textContent = `${frame.length} B · raw WebSocket`;
         insetBytes.setAttribute('x', textX.toFixed(2));
         insetBytes.setAttribute('y', (gridBottom + (big ? 48 : 15)).toFixed(2));
         insetBytes.textContent = frame;
         insetCaption.setAttribute('x', textX.toFixed(2));
         insetCaption.setAttribute('y', (gridBottom + (big ? 70 : 30)).toFixed(2));
-        insetCaption.textContent = `${frame.length} bytes · raw WebSocket`;
+        insetCaption.textContent = 'tick | id | seen | view-bits | crc';
       }
       serverLabel.setAttribute('x', server.x.toFixed(2));
       serverLabel.setAttribute('y', (server.y + 4).toFixed(2));
