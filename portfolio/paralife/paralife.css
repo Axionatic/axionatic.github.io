@@ -108,6 +108,9 @@
   stroke-width: 1;
 }
 
+.server-pulse { fill: none; stroke: #0cc; stroke-width: 1.5; opacity: 0; pointer-events: none; }
+.wire-packet { fill: #0cc; filter: drop-shadow(0 0 4px rgba(0, 204, 204, 0.9)); opacity: 0; pointer-events: none; }
+
 .client-node { fill: var(--client-color, #0cc); }
 .client-identity-ring { fill: none; stroke: rgba(255, 255, 255, 0.44); stroke-width: 1; }
 .network-client[data-state="lagging"] .client-identity-ring { stroke-dasharray: 2 3; stroke-width: 2; }
@@ -121,6 +124,15 @@
 #server-label,
 #recovery-label { fill: rgba(255, 255, 255, 0.82); text-anchor: middle; font-size: 12px; letter-spacing: 0.08em; }
 #reconnect-path { fill: none; stroke: #fc6; stroke-width: 2; stroke-dasharray: 7 5; }
+.resume-token { fill: #fc6; filter: drop-shadow(0 0 5px #fc6); pointer-events: none; }
+#frame-inset { pointer-events: none; }
+.inset-cell { stroke: rgba(0, 204, 204, 0.22); stroke-width: 1; }
+.inset-label { fill: rgba(255, 255, 255, 0.6); font-size: 11px; letter-spacing: 0.14em; }
+.inset-arrow { fill: rgba(0, 204, 204, 0.65); font-size: 10px; letter-spacing: 0.1em; }
+.inset-bytes { fill: rgba(0, 204, 204, 0.92); font-size: 13px; letter-spacing: 0.04em; }
+.inset-caption { fill: rgba(255, 255, 255, 0.45); font-size: 10px; letter-spacing: 0.08em; }
+.inset-label, .inset-arrow, .inset-bytes, .inset-caption { font-family: 'Share Tech Mono', monospace; }
+.grace-label { fill: #f96; text-anchor: middle; font-size: 11px; letter-spacing: 0.12em; font-family: 'Share Tech Mono', monospace; pointer-events: none; }
 
 #legend-layer text { text-anchor: middle; fill: rgba(255, 255, 255, 0.78); }
 #legend-layer .legend-species { font-size: clamp(16px, 2vw, 24px); letter-spacing: 0.16em; }
@@ -393,19 +405,6 @@
     text-align: center;
     font-size: clamp(19px, 5.4vw, 26px);
   }
-
-  .network-client[data-client-id="client-12"],
-  .network-client[data-client-id="client-13"],
-  .network-client[data-client-id="client-14"],
-  .network-client[data-client-id="client-15"],
-  .network-client[data-client-id="client-16"],
-  .network-client[data-client-id="client-17"],
-  .network-link[data-client-id="client-12"],
-  .network-link[data-client-id="client-13"],
-  .network-link[data-client-id="client-14"],
-  .network-link[data-client-id="client-15"],
-  .network-link[data-client-id="client-16"],
-  .network-link[data-client-id="client-17"] { display: none; }
 
   .trace-compare {
     grid-template-columns: 1fr;

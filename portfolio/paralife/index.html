@@ -123,9 +123,9 @@
         <div class="row-text">
           <ul>
             <li>Ordered event stages mutate the world &mdash; simulation, environment, actions, then broadcast</li>
-            <li>Every world mutation happens on the tick thread, so the grid needs no contended locking</li>
+            <li>World mutation is single-writer on the tick thread; readers take an immutable snapshot, never the live grid</li>
             <li>Each connection owns one virtual thread draining a bounded queue &mdash; the tick never waits on a socket</li>
-            <li>1,000 sessions sustained in 45&thinsp;ms of a 500&thinsp;ms budget</li>
+            <li>2,000 concurrent connections held, every tick inside its 500&thinsp;ms budget</li>
           </ul>
         </div>
       </div>
@@ -240,8 +240,8 @@
     </div>
 
     <footer class="tech-footer">
-      Sole developer <span>&middot;</span> 19k lines Java <span>&middot;</span> 30k lines of tests <span>&middot;</span>
-      1,114 JUnit tests <span>&middot;</span> Java 21 <span>&middot;</span> Spring Boot 3.4 <span>&middot;</span>
+      Sole developer <span>&middot;</span> 20k lines Java <span>&middot;</span> 32k lines of tests <span>&middot;</span>
+      1,156 JUnit tests <span>&middot;</span> Java 21 <span>&middot;</span> Spring Boot 3.4 <span>&middot;</span>
       Jetty 12 <span>&middot;</span> Virtual threads <span>&middot;</span> Raw WebSocket <span>&middot;</span>
       Micrometer <span>&middot;</span> JFR <span>&middot;</span> Gradle
     </footer>

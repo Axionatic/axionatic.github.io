@@ -57,6 +57,7 @@ let morphProgress = 0;
 let techFade = 1;                // 1 while the world is on show, 0 once tech rows take over
 let reseedTimer = null;
 let rng;
+const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
 
 let progressBar, scrollHint, headerPanelEl, narrativePanelEl, openingVisualsEl;
 let titleOverlayEl;
@@ -204,6 +205,27 @@ function visionWindows() {
   });
 }
 
+/** Each observed entity roams inside its home slot; its perception window — the
+ *  undimmed cutout and the dashed SVG frame — travels with it. Everything snaps
+ *  to the cell grid: the dot steps cell to cell, and the frame keeps hugging the
+ *  bright cells, so the whole view reads as a discrete sampling of the world. */
+function driftEntities(windows) {
+  windows.forEach((win, i) => {
+    const amp = win.rect.width * 0.18;
+    const ex = reducedMotion.matches ? win.center.x
+      : win.center.x + Math.sin(time * 0.45 + i * 2.1) * amp;
+    const ey = reducedMotion.matches ? win.center.y
+      : win.center.y + Math.cos(time * 0.31 + i * 1.4) * amp;
+    const cx = clamp(Math.round((ex - offsetX) / cellPx - 0.5), VISION_RADIUS, cols - 1 - VISION_RADIUS);
+    const cy = clamp(Math.round((ey - offsetY) / cellPx - 0.5), VISION_RADIUS, rows - 1 - VISION_RADIUS);
+    win.cx = cx;
+    win.cy = cy;
+    win.rect.x = offsetX + (cx - VISION_RADIUS) * cellPx;
+    win.rect.y = offsetY + (cy - VISION_RADIUS) * cellPx;
+    win.entity = { x: offsetX + (cx + 0.5) * cellPx, y: offsetY + (cy + 0.5) * cellPx };
+  });
+}
+
 function drawWorld(windows) {
   const vision = visionAmount();
   // The world only recedes once the tech rows start arriving — driven by the
@@ -273,6 +295,7 @@ function render() {
   }
 
   const windows = visionWindows();
+  driftEntities(windows);
   drawWorld(windows);
   openingController.render({
     progress: morphProgress,

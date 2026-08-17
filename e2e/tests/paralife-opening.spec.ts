@@ -61,60 +61,107 @@ test('first three beats morph through one shared frame and reverse cleanly', asy
   }
 
   await scrollToProgress(page, 0.30);
-  const before = await page.locator('#morph-frame').evaluate((el) => ({
-    x: el.getAttribute('x'), y: el.getAttribute('y'),
-    width: el.getAttribute('width'), height: el.getAttribute('height'),
+  const readFrame = () => page.locator('#morph-frame').evaluate((el) => ({
+    x: Number(el.getAttribute('x')), y: Number(el.getAttribute('y')),
+    width: Number(el.getAttribute('width')), height: Number(el.getAttribute('height')),
   }));
+  const before = await readFrame();
   await page.waitForTimeout(500);
-  const sameScrollLater = await page.locator('#morph-frame').evaluate((el) => ({
-    x: el.getAttribute('x'), y: el.getAttribute('y'),
-    width: el.getAttribute('width'), height: el.getAttribute('height'),
-  }));
-  expect(sameScrollLater).toEqual(before);
+  const sameScrollLater = await readFrame();
+  // Frame size is a pure function of scroll; its position now tracks the
+  // observed entity, which roams within its window (~±0.18 of the width).
+  expect(sameScrollLater.width).toBe(before.width);
+  expect(sameScrollLater.height).toBe(before.height);
+  expect(Math.abs(sameScrollLater.x - before.x)).toBeLessThanOrEqual(before.width);
+  expect(Math.abs(sameScrollLater.y - before.y)).toBeLessThanOrEqual(before.width);
   await scrollToProgress(page, 0.50);
   await expect(page.locator('#morph-frame')).toHaveCSS('opacity', '1');
   await expect(page.locator('#legend-layer')).toHaveCSS('opacity', '1');
   await scrollToProgress(page, 0.30);
-  const after = await page.locator('#morph-frame').evaluate((el) => ({
-    x: el.getAttribute('x'), y: el.getAttribute('y'),
-    width: el.getAttribute('width'), height: el.getAttribute('height'),
-  }));
-  expect(after).toEqual(before);
+  const after = await readFrame();
+  // Scrubbing away and back restores the scroll-driven size and drift band.
+  expect(after.width).toBe(before.width);
+  expect(after.height).toBe(before.height);
+  expect(Math.abs(after.x - before.x)).toBeLessThanOrEqual(before.width);
+  expect(Math.abs(after.y - before.y)).toBeLessThanOrEqual(before.width);
 });
 
-test('client failure lifecycle is scroll-bound and preserves node identity', async ({ page }) => {
+test('durability lifecycle loops on its own clock and preserves node identity', async ({ page }) => {
+  // The clock is requestAnimationFrame-driven; under parallel-worker CPU
+  // starvation it advances slower than wall-clock, so one ~9s cycle can need
+  // well over the default 30s budget. Early-exit keeps unthrottled runs ~10s.
+  test.setTimeout(90_000);
   await navigateToPortfolioPage(page, PARALIFE_PATH);
-  await expect(page.locator('.network-client')).toHaveCount(18);
 
-  const sample = page.locator('.network-client[data-client-id="client-03"]');
-  const snapshots: Record<string, { transform: string | null; marker: string | null }> = {};
+  // Park at the concurrency beat. The lifecycle now advances on its own clock,
+  // not the scroll position — so we watch it play out over one full cycle (~9s)
+  // without scrolling.
+  await scrollToProgress(page, 0.90);
+  // The connection count scales with the viewport (JS: max(16, min(30, round(w/52)))).
+  // Assert the exact count so a stray CSS rule can't silently hide part of the ring.
+  const w = page.viewportSize()!.width;
+  const expectedClients = Math.max(16, Math.min(30, Math.round(w / 52)));
+  expect(await page.locator('.network-client:visible').count()).toBe(expectedClients);
 
-  for (const [progress, phase] of [[0.72, 'lagging'], [0.79, 'stalled'], [0.86, 'reconnecting'], [0.96, 'recovered']] as const) {
-    await scrollToProgress(page, progress);
-    await expect(page.locator('#opening-story')).toHaveAttribute('data-client-phase', phase);
-    await expect(sample).toHaveAttribute('data-state', phase);
-    snapshots[phase] = await sample.evaluate((el) => ({
-      transform: el.getAttribute('transform'),
-      marker: el.getAttribute('data-identity-marker'),
-    }));
+  const wanted = ['healthy', 'stalled', 'reconnecting', 'recovered'];
+  const phases = new Set<string>();
+  const transforms = new Set<string>();
+  const markers = new Set<string>();
+
+  // Poll until the full arc has been observed. The clock is driven by
+  // requestAnimationFrame, which throttles under parallel load, so we sample to
+  // a generous deadline and exit as soon as every phase has appeared rather than
+  // assuming a fixed wall-clock window.
+  const deadline = Date.now() + 75000;
+  while (Date.now() < deadline && !wanted.every((w) => phases.has(w))) {
+    const snap = await page.evaluate(() => {
+      const node = document.querySelector('.network-client[data-client-id="client-03"]');
+      return {
+        phase: document.getElementById('opening-story')?.getAttribute('data-client-phase') ?? '',
+        recovery: getComputedStyle(document.getElementById('recovery-label')!).opacity,
+        transform: node?.getAttribute('transform') ?? '',
+        marker: node?.getAttribute('data-identity-marker') ?? '',
+      };
+    });
+    phases.add(snap.phase);
+    transforms.add(snap.transform);
+    markers.add(snap.marker);
+    // The recovery label is shown for every non-healthy phase of the arc.
+    if (['stalled', 'reconnecting', 'recovered'].includes(snap.phase)) {
+      expect(snap.recovery).toBe('1');
+    }
+    await page.waitForTimeout(400);
   }
 
-  expect(new Set(Object.values(snapshots).map((s) => s.transform)).size).toBe(1);
-  expect(new Set(Object.values(snapshots).map((s) => s.marker)).size).toBe(1);
+  // The whole arc plays without any scrolling.
+  for (const w of wanted) expect(phases).toContain(w);
 
-  await scrollToProgress(page, 0.79);
-  await expect(sample).toHaveAttribute('data-state', 'stalled');
-  await scrollToProgress(page, 0.96);
-  await expect(page.locator('#recovery-label')).toHaveCSS('opacity', '1');
+  // The entity is held on the grid: its position and identity never change,
+  // even as the connection stalls and rebinds — the point of the resume token.
+  expect(transforms.size).toBe(1);
+  expect(markers.size).toBe(1);
 });
 
-test('healthy clients remain healthy while affected clients stall', async ({ page }) => {
+test('only the protagonist connection stalls; the rest stay healthy', async ({ page }) => {
+  test.setTimeout(60_000); // rAF clock throttles under parallel load; see lifecycle test
   await navigateToPortfolioPage(page, PARALIFE_PATH);
-  await scrollToProgress(page, 0.79);
-  await expect(page.locator('.network-client[data-client-id="client-03"]')).toHaveAttribute('data-state', 'stalled');
-  await expect(page.locator('.network-client[data-client-id="client-11"]')).toHaveAttribute('data-state', 'stalled');
-  await expect(page.locator('.network-client[data-client-id="client-04"]')).toHaveAttribute('data-state', 'healthy');
-  await expect(page.locator('#morph-frame')).toHaveAttribute('data-state', 'healthy');
+  await scrollToProgress(page, 0.90);
+
+  // Wait for the protagonist to reach its stall phase (loops on its own clock).
+  await page.waitForFunction(
+    () => document.querySelector('.network-client[data-client-id="client-03"]')?.getAttribute('data-state') === 'stalled',
+    undefined,
+    { timeout: 45000 },
+  );
+
+  const states = await page.evaluate(() => {
+    const s = (id: string) => document.querySelector(`.network-client[data-client-id="${id}"]`)?.getAttribute('data-state');
+    return { c3: s('client-03'), c4: s('client-04'), c11: s('client-11'), frame: document.getElementById('morph-frame')?.getAttribute('data-state') };
+  });
+  expect(states.c3).toBe('stalled');
+  expect(states.c4).toBe('healthy');
+  expect(states.c11).toBe('healthy');
+  expect(states.frame).toBe('healthy');
 });
 
 test('concurrency copy is left of the network on desktop and above it on mobile', async ({ page }) => {
