@@ -127,11 +127,12 @@
 .resume-token { fill: #fc6; filter: drop-shadow(0 0 5px #fc6); pointer-events: none; }
 #frame-inset { pointer-events: none; }
 .inset-cell { stroke: rgba(0, 204, 204, 0.22); stroke-width: 1; }
+.inset-codec { fill: #0cc; font-size: 11px; letter-spacing: 0.18em; text-transform: uppercase; }
 .inset-label { fill: rgba(255, 255, 255, 0.6); font-size: 11px; letter-spacing: 0.14em; }
 .inset-arrow { fill: rgba(0, 204, 204, 0.65); font-size: 10px; letter-spacing: 0.1em; }
 .inset-bytes { fill: rgba(0, 204, 204, 0.92); font-size: 13px; letter-spacing: 0.04em; }
 .inset-caption { fill: rgba(255, 255, 255, 0.45); font-size: 10px; letter-spacing: 0.08em; }
-.inset-label, .inset-arrow, .inset-bytes, .inset-caption { font-family: 'Share Tech Mono', monospace; }
+.inset-codec, .inset-label, .inset-arrow, .inset-bytes, .inset-caption { font-family: 'Share Tech Mono', monospace; }
 .grace-label { fill: #f96; text-anchor: middle; font-size: 11px; letter-spacing: 0.12em; font-family: 'Share Tech Mono', monospace; pointer-events: none; }
 
 #legend-layer text { text-anchor: middle; fill: rgba(255, 255, 255, 0.78); }

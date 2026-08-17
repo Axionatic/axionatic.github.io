@@ -216,6 +216,9 @@
     const frameInset = document.createElementNS(SVG_NS, 'g');
     frameInset.setAttribute('id', 'frame-inset');
     frameInset.style.opacity = '0';
+    const insetCodec = document.createElementNS(SVG_NS, 'text');
+    insetCodec.classList.add('inset-codec');
+    insetCodec.textContent = 'PARA64 · high-efficiency codec';
     const insetLabel = document.createElementNS(SVG_NS, 'text');
     insetLabel.classList.add('inset-label');
     insetLabel.textContent = "one entity's view";
@@ -231,15 +234,18 @@
     insetBytes.classList.add('inset-bytes');
     const insetCaption = document.createElementNS(SVG_NS, 'text');
     insetCaption.classList.add('inset-caption');
-    frameInset.append(insetLabel, insetArrow, insetBytes, insetCaption);
+    frameInset.append(insetCodec, insetLabel, insetArrow, insetBytes, insetCaption);
     networkLayer.appendChild(frameInset);
 
-    // One stylised tick ~= 1.6 s (slower than the real 2 Hz, for legibility).
-    // The pulse is deliberately unlabelled so it makes no false rate claim; the
-    // static "SERVER · 2 Hz" label describes the server, not the animation.
-    const TICK_PERIOD = 1.6;   // seconds per illustrated tick
+    // One stylised tick = 1 s. The pulse is deliberately unlabelled so it makes
+    // no false rate claim; the static "SERVER · 2 Hz" label describes the
+    // server, not this illustrated cadence.
+    const TICK_PERIOD = 1.0;   // seconds per illustrated tick
     const FANOUT_START = 0.12; // packets leave after the tick's stages "run"
     const FANOUT_SPAN = 0.5;   // fraction of the tick spent in flight
+    // Base-64 of the 25-bit view value → 5 fixed chars (denser than hex).
+    const B64 = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/';
+    const b64 = (n) => { let s = ''; for (let i = 4; i >= 0; i--) s += B64[(n >> (i * 6)) & 63]; return s; };
     const FAN_STAGGER = 0.16;  // spread across connections, so it reads as fan-out
 
     function render({ progress, techFade, viewport, windows, ambientTime }) {
@@ -398,6 +404,8 @@
         const big = !mobile;
         const cell = big ? 30 : 14;
         const gridH = 5 * cell;
+        const lh = big ? 18 : 14; // codec badge → grid-label line height
+        insetCodec.style.fontSize = (big ? 12 : 10) + 'px';
         insetLabel.style.fontSize = (big ? 15 : 13) + 'px';
         insetArrow.style.fontSize = (big ? 12 : 10) + 'px';
         insetBytes.style.fontSize = (big ? 19 : 14) + 'px';
@@ -409,24 +417,27 @@
           // clears both on short phones where that gap is tight.
           const gapTop = viewport.height * 0.31;
           const gapBottom = server.y - radiusY * 0.82 - 16;
-          const insetH = 12 + gridH + 42; // grid + bytes + caption incl. descenders
+          const insetH = lh + 12 + gridH + 42; // badge + grid + bytes + caption
           iy = gapTop + Math.max(4, (gapBottom - gapTop - insetH) / 2) + 9;
         } else {
           // Left of the ring, below the copy — the two sit side by side. Clamped
           // so the taller box can't run off the bottom on a short desktop.
           iy = Math.min(viewport.height * 0.60, viewport.height - 270);
         }
-        const gridTop = iy + (big ? 20 : 12);
+        const labelY = iy + lh;
+        const gridTop = labelY + (big ? 20 : 12);
         // Desktop left-aligns the readout; mobile centres it under the copy.
         const gridW = 5 * cell;
         const anchor = big ? 'start' : 'middle';
         const textX = big ? ix : viewport.width / 2;
         const gridX = big ? ix : viewport.width / 2 - gridW / 2;
-        [insetLabel, insetArrow, insetBytes, insetCaption].forEach((t) => t.setAttribute('text-anchor', anchor));
+        [insetCodec, insetLabel, insetArrow, insetBytes, insetCaption].forEach((t) => t.setAttribute('text-anchor', anchor));
         const tick = Math.floor(ambientTime / TICK_PERIOD);
         const species = ['#0cc', '#be8cff', '#ffa046'];
+        insetCodec.setAttribute('x', textX.toFixed(2));
+        insetCodec.setAttribute('y', iy.toFixed(2));
         insetLabel.setAttribute('x', textX.toFixed(2));
-        insetLabel.setAttribute('y', iy.toFixed(2));
+        insetLabel.setAttribute('y', labelY.toFixed(2));
         // Serialize the grid as we lay it out: each lit non-self cell sets a bit,
         // so view-bits below is literally this grid, and it churns every tick.
         let viewBits = 0, seen = 0;
@@ -437,16 +448,18 @@
           r.setAttribute('width', String(cell - 2));
           r.setAttribute('height', String(cell - 2));
           const center = gx === 2 && gy === 2;
-          const lit = (gx * 7 + gy * 13 + tick * 5) % 4 === 0;
+          // Spatial hash decorrelates cells across ticks, so both the pattern
+          // and the lit-count (seen) vary organically frame to frame.
+          const h = ((gx * 73856093) ^ (gy * 19349663) ^ (tick * 83492791)) >>> 0;
+          const lit = h % 100 < 38;
           if (!center && lit) { viewBits |= 1 << k; seen++; }
-          r.setAttribute('fill', center ? '#fff' : lit ? species[(gx + gy + tick) % 3] : 'rgba(0,204,204,0.05)');
+          r.setAttribute('fill', center ? '#fff' : lit ? species[h % 3] : 'rgba(0,204,204,0.05)');
         });
         const gridBottom = gridTop + gridH;
         // Wire frame: tick | entity-id (held constant — the identity that
-        // survives the stall) | cells seen | view bitmap (hex) | checksum.
+        // survives the stall) | cells seen | view bitmap (base-64) | checksum.
         const tick3 = String(tick % 1000).padStart(3, '0');
-        const viewHex = viewBits.toString(16).toUpperCase().padStart(7, '0');
-        const body = `${tick3}|0A1B|${String(seen).padStart(2, '0')}|${viewHex}`;
+        const body = `${tick3}|0A1B|${String(seen).padStart(2, '0')}|${b64(viewBits)}`;
         let sum = 0;
         for (let i = 0; i < body.length; i++) sum = (sum + body.charCodeAt(i)) & 0xff;
         const frame = `${body}|${sum.toString(16).toUpperCase().padStart(2, '0')}`;
