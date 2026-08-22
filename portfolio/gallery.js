@@ -42,7 +42,7 @@ const TITLE_PALETTES = {
   guestflow: [[255,150,50],[0,200,200],[0,180,220],[0,220,180],[255,170,70]],
   mystery:   [[106,170,68],[0,204,204],[232,85,85],[0,170,255],[0,238,170]],
   bitbrush:  [[0,204,204],[68,255,68],[255,102,51],[204,68,255],[0,170,255]],
-  paralife:  [[0,204,204],[190,140,255],[255,160,70],[0,238,170],[68,221,255]],
+  paralife:  [[255,159,67],[180,124,240],[63,224,232],[230,195,92],[47,158,106],[224,90,78],[245,224,76]],
 };
 
 function getTitleLetterIntensity(projectId, morph, i, count) {
@@ -477,111 +477,40 @@ function renderBitbrush(ctx, w, h, morph, time, state) {
 
 
 // ═══════════════════════════════════════════════════════════════════════════
-// Paralife — toroidal rock-paper-scissors cellular automaton
-// Chaos (noise) dissolves into the spiral waves the simulation produces.
+// Paralife — shared roguelike glyph world.
+// Chaos dissolves into the same deterministic ecosystem used by the hero.
 // ═══════════════════════════════════════════════════════════════════════════
-const PL_SPECIES = [[0,204,204],[190,140,255],[255,160,70]];
-const PL_BEAT = 3;          // predator neighbours needed to convert a cell
-const PL_STEP = 0.12;       // seconds between automaton steps
-const PL_SETTLE = 40;       // steps run at init so the thumbnail opens mid-pattern
-const PL_PATCHES = 8;
-const PL_PATCH_R = 4;
-
-function plIdx(state, x, y) {
-  const c = state.cols, r = state.rows;
-  const wx = x < 0 ? x + c : x >= c ? x - c : x;
-  const wy = y < 0 ? y + r : y >= r ? y - r : y;
-  return wy * c + wx;
-}
-
-function plStep(state) {
-  const grid = state.grid, next = state.next;
-  for (let y = 0; y < state.rows; y++) {
-    for (let x = 0; x < state.cols; x++) {
-      const here = grid[plIdx(state, x, y)];
-      const predator = (here + 2) % 3;
-      let count = 0;
-      for (let dy = -1; dy <= 1; dy++) {
-        for (let dx = -1; dx <= 1; dx++) {
-          if (dx === 0 && dy === 0) continue;
-          if (grid[plIdx(state, x + dx, y + dy)] === predator) count++;
-        }
-      }
-      next[plIdx(state, x, y)] = count >= PL_BEAT ? predator : here;
-    }
-  }
-  state.grid = next;
-  state.next = grid;
-}
-
 function initParalife(w, h) {
-  const rng = alea('paralife-th');
-  const cs = Math.max(4, Math.min(9, Math.floor(Math.min(w, h) / 30)));
-  const cols = Math.max(4, Math.floor(w / cs));
-  const rows = Math.max(4, Math.floor(h / cs));
-  const total = cols * rows;
-
-  const state = {
-    cs: cs, cols: cols, rows: rows, total: total,
-    ox: (w - cols * cs) / 2,
-    oy: (h - rows * cs) / 2,
-    grid: new Uint8Array(total),
-    next: new Uint8Array(total),
-    noise: new Uint8Array(total),
-    threshold: new Float32Array(total),
+  const api = window.ParalifeGlyphWorld;
+  const cellPx = Math.max(14, Math.min(18, Math.floor(Math.min(w, h) / 18)));
+  const cols = Math.max(20, Math.ceil(w / cellPx));
+  const rows = Math.max(12, Math.ceil(h / cellPx));
+  return {
+    world: api.createWorld({ cols, rows, seed: 'paralife-th', profile: api.GALLERY_PROFILE }),
+    cellPx,
+    originX: (w - cols * cellPx) / 2,
+    originY: (h - rows * cellPx) / 2,
     stepTime: 0,
-    lastTime: 0
+    lastTime: 0,
   };
-
-  for (let i = 0; i < total; i++) {
-    state.grid[i] = (rng() * 3) | 0;
-    state.threshold[i] = rng();
-  }
-
-  for (let p = 0; p < PL_PATCHES; p++) {
-    const cx = (rng() * cols) | 0, cy = (rng() * rows) | 0;
-    const species = (rng() * 3) | 0;
-    for (let dy = -PL_PATCH_R; dy <= PL_PATCH_R; dy++) {
-      for (let dx = -PL_PATCH_R; dx <= PL_PATCH_R; dx++) {
-        if (dx * dx + dy * dy > PL_PATCH_R * PL_PATCH_R) continue;
-        state.grid[plIdx(state, cx + dx, cy + dy)] = species;
-      }
-    }
-  }
-
-  // Keep the un-evolved field as the "chaos" end of the morph.
-  state.noise.set(state.grid);
-  for (let i = 0; i < PL_SETTLE; i++) plStep(state);
-
-  return state;
 }
 
 function renderParalife(ctx, w, h, morph, time, state) {
-  ctx.fillStyle = '#000';
-  ctx.fillRect(0, 0, w, h);
-
-  // Advance the automaton on wall-clock, independent of the morph cycle.
   const dt = Math.max(0, Math.min(0.25, time - state.lastTime));
   state.lastTime = time;
   state.stepTime += dt;
-  while (state.stepTime >= PL_STEP) {
-    state.stepTime -= PL_STEP;
-    plStep(state);
+  const api = window.ParalifeGlyphWorld;
+  while (state.stepTime >= api.GALLERY_PROFILE.stepInterval) {
+    state.stepTime -= api.GALLERY_PROFILE.stepInterval;
+    api.advanceWorld(state.world);
   }
-
-  const cs = state.cs;
-  const size = cs > 5 ? cs - 1 : cs;
-
-  for (let i = 0; i < state.total; i++) {
-    // Per-cell threshold dissolves noise into the settled pattern.
-    const settled = morph > state.threshold[i];
-    const species = settled ? state.grid[i] : state.noise[i];
-    const col = i % state.cols;
-    const row = (i / state.cols) | 0;
-    const alpha = settled ? 0.72 : 0.28;
-    ctx.fillStyle = rgbaStr(PL_SPECIES[species], alpha);
-    ctx.fillRect(state.ox + col * cs, state.oy + row * cs, size, size);
-  }
+  api.renderWorld(ctx, state.world, {
+    cellPx: state.cellPx,
+    originX: state.originX,
+    originY: state.originY,
+    morph,
+    alpha: 1,
+  });
 }
 
 
