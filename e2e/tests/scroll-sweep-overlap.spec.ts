@@ -1,5 +1,9 @@
 import { test, expect } from '@playwright/test';
-import { PORTFOLIO_PAGES, navigateToPortfolioPage } from '../helpers/pages';
+import {
+  PORTFOLIO_PAGES,
+  navigateToPortfolioPage,
+  type PortfolioPageName,
+} from '../helpers/pages';
 import { scrollToProgress } from '../helpers/scroll';
 import { isElementVisible, isContainedInViewport, hasHorizontalOverflow, rectsOverlap } from '../helpers/geometry';
 import { type Page } from '@playwright/test';
@@ -14,7 +18,8 @@ import { type Page } from '@playwright/test';
  * - No horizontal page overflow
  */
 
-const INTERACTIVE_ELEMENTS: Record<string, string[]> = {
+const INTERACTIVE_ELEMENTS: Record<PortfolioPageName, string[]> = {
+  paralife: ['.nav-btn'],
   jointly: ['.nav-btn', '#ranking'],
   oasis: ['.nav-btn', '#dashboard'],
   mystery: ['.nav-btn'],
@@ -22,7 +27,8 @@ const INTERACTIVE_ELEMENTS: Record<string, string[]> = {
   bitbrush: ['.nav-btn', '#demo-panel'],
 };
 
-const CONTAINMENT_ELEMENTS: Record<string, string[]> = {
+const CONTAINMENT_ELEMENTS: Record<PortfolioPageName, string[]> = {
+  paralife: ['#header-panel', '#title-overlay', '.nav-btn', '#opening-story', '#opening-visuals'],
   jointly: ['#header-panel', '#title-overlay', '.nav-btn', '#ranking', '#narrative'],
   oasis: ['#header-panel', '#title-overlay', '.nav-btn', '#dashboard'],
   mystery: ['#header-panel', '#title-overlay', '.nav-btn', '#narrative'],

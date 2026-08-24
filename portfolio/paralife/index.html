@@ -48,16 +48,22 @@
       <rect id="morph-frame" rx="10"/>
     </g>
     <g id="perception-layer">
-      <circle id="observed-entity" r="5"/>
+      <text id="observed-entity">◬</text>
       <text id="perception-label">ENTITY 1 VIEW</text>
     </g>
     <g id="legend-layer">
-      <text class="legend-species legend-catalyst">CATALYST</text>
-      <text class="legend-species legend-membrane">MEMBRANE</text>
-      <text class="legend-species legend-spore">SPORE</text>
+      <rect id="legend-surface" class="content-surface" rx="10"/>
+      <text class="legend-species legend-catalyst">◬ CATALYST</text>
+      <text class="legend-species legend-membrane">⊡ MEMBRANE</text>
+      <text class="legend-species legend-spore">⊙ SPORE</text>
+      <text class="legend-detail">✶ BONDED · ■ ROCK · ⬩ NUTRIENT</text>
+      <text class="legend-detail">≋ TOXIN · ※ MUTAGEN · ↯ LIGHTNING</text>
+      <text class="legend-detail">⋈ LOCOMOTOR · ❖ FEEDER · ⨳ ATTACKER</text>
+      <text class="legend-detail">⊞ DEFENDER · ❉ REPRODUCER · ◉ SENSOR</text>
       <text id="legend-cycle">CATALYST → MEMBRANE → SPORE → CATALYST</text>
     </g>
     <g id="network-layer">
+      <rect id="network-surface" class="content-surface" rx="12"/>
       <g id="network-links"></g>
       <g id="network-clients"></g>
       <text id="server-label">SERVER · 2 Hz</text>
@@ -248,6 +254,7 @@
   <script src="https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/ScrollTrigger.min.js"></script>
   <script src="../../utils/math.js"></script>
   <script src="../../utils/prng.js"></script>
+  <script src="paralife-glyph-world.js"></script>
   <script src="paralife-opening.js"></script>
   <script src="paralife.js"></script>
   <script src="../../marquee.js"></script>

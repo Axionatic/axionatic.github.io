@@ -1,35 +1,18 @@
 'use strict';
 
-// Paralife hero: a toroidal cyclic cellular automaton with three species in a
-// rock-paper-scissors cycle — the same spiral-wave behaviour the server exists
-// to produce. Scrolling narrows the world down to what a single entity can
-// actually see, then hands over to the tech rows.
+// Paralife hero: the shared roguelike glyph world. Its dense three-species
+// automaton still produces the spiral waves; a presentation mask and layered
+// occupants give the portfolio the same visual language as Paralife itself.
 
 // -- World -------------------------------------------------------------------
 // Cells are deliberately large. Below ~16px the field reads as static rather
 // than as a pattern — the spiral arms are several cells wide, so small cells
 // put the structure below the eye's resolving power at a glance.
-const CELL_PX = 16;              // target cell size in CSS pixels
-const CELL_PX_MOBILE = 12;
+const CELL_PX = 18;
+const CELL_PX_MOBILE = 16;
 const MOBILE_BREAKPOINT = 600;
-const STEP_INTERVAL = 0.11;      // seconds between automaton steps
-const BEAT_THRESHOLD = 3;        // predator neighbours needed to convert a cell
-const DOMAIN_PATCHES = 10;       // broad single-species regions the fronts cut across
-const DOMAIN_R = 14;
-const SPIRAL_CORES = 7;          // three-species defects; each winds into a spiral
-const CORE_R = 9;
-const SETTLE_STEPS = 90;         // run before first paint so the page opens mid-pattern
-const CELL_ALPHA = 0.30;         // the world is a backdrop, not the subject
+const WORLD_ALPHA = 0.82;
 const VIGNETTE = 0.82;           // darkens the edges so panels stay readable
-const TAU = Math.PI * 2;
-
-// Three species in a cycle: 0 eats 1, 1 eats 2, 2 eats 0.
-const SPECIES = [
-  { name: 'catalyst', rgb: [0, 204, 204] },
-  { name: 'membrane', rgb: [190, 140, 255] },
-  { name: 'spore',    rgb: [255, 160, 70] },
-];
-const SPECIES_COUNT = SPECIES.length;
 
 // -- Vision scoping ----------------------------------------------------------
 const VISION_RADIUS = 5;         // cells visible around the observed entity
@@ -48,15 +31,16 @@ const FRAME_DT = 0.016;
 
 // -- State -------------------------------------------------------------------
 let canvas, ctx, dpr;
+let brightWorldCanvas, dimWorldCanvas;
+let worldRasterKey = '';
 let W, H;
 let cols, rows, cellPx, offsetX, offsetY;
-let grid, next;
+let worldState;
 let stepTimer = 0;
 let time = 0;
 let morphProgress = 0;
 let techFade = 1;                // 1 while the world is on show, 0 once tech rows take over
 let reseedTimer = null;
-let rng;
 const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
 
 let progressBar, scrollHint, headerPanelEl, narrativePanelEl, openingVisualsEl;
@@ -67,96 +51,12 @@ let openingController;
 // World helpers
 // ---------------------------------------------------------------------------
 
-/** Toroidal index — every edge wraps to the opposite side. */
-function idx(x, y) {
-  const wx = x < 0 ? x + cols : x >= cols ? x - cols : x;
-  const wy = y < 0 ? y + rows : y >= rows ? y - rows : y;
-  return wy * cols + wx;
-}
-
 /** Shortest wrapped distance along one axis. */
 function wrapDelta(a, b, span) {
   let d = a - b;
   if (d > span / 2) d -= span;
   if (d < -span / 2) d += span;
   return d;
-}
-
-function seedWorld() {
-  grid = new Uint8Array(cols * rows);
-  next = new Uint8Array(cols * rows);
-
-  // idx() wraps a single period, so no seed may reach further than half the
-  // grid or its writes fall outside the array. Caps the radii on tiny screens.
-  const maxR = (Math.min(cols, rows) >> 1) - 1;
-
-  for (let i = 0; i < grid.length; i++) {
-    grid[i] = (rng() * SPECIES_COUNT) | 0;
-  }
-
-  // Broad single-species domains. Per-cell noise on its own burns down into
-  // fine turbulence; domains leave long clean fronts for the waves to run along.
-  for (let p = 0; p < DOMAIN_PATCHES; p++) {
-    const cx = (rng() * cols) | 0;
-    const cy = (rng() * rows) | 0;
-    const species = (rng() * SPECIES_COUNT) | 0;
-    const r = Math.min(Math.round(DOMAIN_R * (0.6 + rng() * 0.8)), maxR);
-    for (let dy = -r; dy <= r; dy++) {
-      for (let dx = -r; dx <= r; dx++) {
-        if (dx * dx + dy * dy > r * r) continue;
-        grid[idx(cx + dx, cy + dy)] = species;
-      }
-    }
-  }
-
-  // A point where all three species meet is a topological defect: the
-  // rock-paper-scissors cycle around it cannot resolve, so it winds into a
-  // spiral. Seeding the defects directly is what makes the arms appear —
-  // random noise nucleates them only rarely, and never in the first seconds.
-  for (let p = 0; p < SPIRAL_CORES; p++) {
-    const cx = (rng() * cols) | 0;
-    const cy = (rng() * rows) | 0;
-    const chirality = rng() < 0.5 ? 1 : -1;   // both handednesses, so it isn't uniform
-    const phase = rng() * TAU;
-    const cr = Math.min(CORE_R, maxR);
-    for (let dy = -cr; dy <= cr; dy++) {
-      for (let dx = -cr; dx <= cr; dx++) {
-        if (dx * dx + dy * dy > cr * cr) continue;
-        const a = Math.atan2(dy, dx) * chirality + phase;
-        const t = ((a % TAU) + TAU) % TAU;
-        grid[idx(cx + dx, cy + dy)] = ((t / TAU) * SPECIES_COUNT) | 0;
-      }
-    }
-  }
-
-  // Let the arms wind before the first frame, so the page never opens on noise.
-  for (let i = 0; i < SETTLE_STEPS; i++) step();
-
-}
-
-/** One automaton step: a cell falls to the species that eats it, once enough
- *  of its neighbours are that species. Wrapping makes the world a torus. */
-function step() {
-  for (let y = 0; y < rows; y++) {
-    for (let x = 0; x < cols; x++) {
-      const here = grid[idx(x, y)];
-      const predator = (here + SPECIES_COUNT - 1) % SPECIES_COUNT;
-      let count = 0;
-
-      for (let dy = -1; dy <= 1; dy++) {
-        for (let dx = -1; dx <= 1; dx++) {
-          if (dx === 0 && dy === 0) continue;
-          if (grid[idx(x + dx, y + dy)] === predator) count++;
-        }
-      }
-
-      next[idx(x, y)] = count >= BEAT_THRESHOLD ? predator : here;
-    }
-  }
-
-  const swap = grid;
-  grid = next;
-  next = swap;
 }
 
 // ---------------------------------------------------------------------------
@@ -237,36 +137,66 @@ function drawWorld(windows) {
 
   if (globalFade <= 0.001) return;
 
-  // No gap between cells. Grid lines made the field read as a spreadsheet and
-  // broke up the wave fronts, which are the whole point of the image.
-  const size = cellPx;
+  rebuildWorldRasters();
 
-  for (let y = 0; y < rows; y++) {
-    for (let x = 0; x < cols; x++) {
-      const species = SPECIES[grid[idx(x, y)]];
+  ctx.save();
+  ctx.globalAlpha = globalFade * (1 - vision);
+  ctx.drawImage(brightWorldCanvas, 0, 0, W, H);
+  if (vision > 0) {
+    ctx.globalAlpha = globalFade * vision;
+    ctx.drawImage(dimWorldCanvas, 0, 0, W, H);
 
-      // Cells outside every observed entity's reach are dimmed, not deleted —
-      // the server redacts them from each entity's frame the same way.
-      let inside = false;
-      for (let i = 0; i < windows.length; i++) {
-        if (Math.abs(wrapDelta(x, windows[i].cx, cols)) <= VISION_RADIUS &&
-            Math.abs(wrapDelta(y, windows[i].cy, rows)) <= VISION_RADIUS) {
-          inside = true;
-          break;
-        }
-      }
-      const dim = inside ? 1 : lerp(1, OUTSIDE_DIM, vision);
-
-      const alpha = CELL_ALPHA * dim * globalFade;
-      if (alpha < 0.012) continue;
-
-      const rgb = species.rgb;
-      ctx.fillStyle = 'rgba(' + rgb[0] + ',' + rgb[1] + ',' + rgb[2] + ',' + alpha + ')';
-      ctx.fillRect(offsetX + x * cellPx, offsetY + y * cellPx, size, size);
+    // Restore the bright raster inside each moving perception window. Glyphs
+    // are cached by world revision; only these cheap image clips move per frame.
+    for (const window of windows) {
+      ctx.save();
+      ctx.beginPath();
+      ctx.rect(window.rect.x, window.rect.y, window.rect.width, window.rect.height);
+      ctx.clip();
+      ctx.globalAlpha = globalFade * vision;
+      ctx.drawImage(brightWorldCanvas, 0, 0, W, H);
+      ctx.restore();
     }
   }
+  ctx.restore();
 
   drawVignette();
+}
+
+function prepareRasterCanvas(existing) {
+  const raster = existing || document.createElement('canvas');
+  if (raster.width !== W * dpr || raster.height !== H * dpr) {
+    raster.width = W * dpr;
+    raster.height = H * dpr;
+  }
+  return raster;
+}
+
+function paintWorldRaster(raster, alpha) {
+  const rasterCtx = raster.getContext('2d');
+  rasterCtx.setTransform(1, 0, 0, 1, 0, 0);
+  rasterCtx.clearRect(0, 0, raster.width, raster.height);
+  rasterCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  window.ParalifeGlyphWorld.renderWorld(rasterCtx, worldState, {
+    cellPx,
+    originX: offsetX,
+    originY: offsetY,
+    morph: 1,
+    alpha,
+    clear: false,
+  });
+}
+
+function rebuildWorldRasters() {
+  const profileId = worldState.profile && worldState.profile.id || 'world';
+  const key = [W, H, dpr, cols, rows, cellPx, profileId, worldState.revision].join(':');
+  if (key === worldRasterKey) return;
+
+  brightWorldCanvas = prepareRasterCanvas(brightWorldCanvas);
+  dimWorldCanvas = prepareRasterCanvas(dimWorldCanvas);
+  paintWorldRaster(brightWorldCanvas, WORLD_ALPHA);
+  paintWorldRaster(dimWorldCanvas, WORLD_ALPHA * OUTSIDE_DIM);
+  worldRasterKey = key;
 }
 
 /** Radial darkening so the header and side panels always have contrast. */
@@ -289,9 +219,10 @@ function render() {
   time += FRAME_DT;
   stepTimer += FRAME_DT;
 
-  if (stepTimer >= STEP_INTERVAL) {
-    stepTimer -= STEP_INTERVAL;
-    step();
+  const stepInterval = window.ParalifeGlyphWorld.HERO_PROFILE.stepInterval;
+  if (stepTimer >= stepInterval) {
+    stepTimer -= stepInterval;
+    window.ParalifeGlyphWorld.advanceWorld(worldState);
   }
 
   const windows = visionWindows();
@@ -327,9 +258,8 @@ function resizeCanvas() {
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
 }
 
-/** Grid metrics, and a reseed only if the grid actually changed shape.
- *  seedWorld() runs SETTLE_STEPS full-grid passes — tens of milliseconds on a
- *  large display — so it must not run on every resize event. */
+/** Grid metrics, and a reseed only if the grid actually changed shape. World
+ *  creation performs settling passes, so it must not run on every resize event. */
 function rebuildWorld() {
   cellPx = W < MOBILE_BREAKPOINT ? CELL_PX_MOBILE : CELL_PX;
   const nextCols = Math.ceil(W / cellPx) + 1;
@@ -337,11 +267,17 @@ function rebuildWorld() {
   offsetX = (W - nextCols * cellPx) / 2;
   offsetY = (H - nextRows * cellPx) / 2;
 
-  if (grid && nextCols === cols && nextRows === rows) return;
+  if (worldState && nextCols === cols && nextRows === rows) return;
 
   cols = nextCols;
   rows = nextRows;
-  seedWorld();
+  worldState = window.ParalifeGlyphWorld.createWorld({
+    cols,
+    rows,
+    seed: 'paralife-world',
+    profile: window.ParalifeGlyphWorld.HERO_PROFILE,
+  });
+  worldRasterKey = '';
 }
 
 function resize() {
@@ -354,8 +290,6 @@ function init() {
   ctx = canvas.getContext('2d');
   document.getElementById('canvas-container').appendChild(canvas);
 
-  rng = alea('paralife-world');
-
   progressBar = document.getElementById('progress-bar');
   scrollHint = document.getElementById('scroll-hint');
   headerPanelEl = document.getElementById('header-panel');
@@ -365,9 +299,8 @@ function init() {
   openingController = window.ParalifeOpening.create(narrativePanelEl);
 
   resize();
-  // The canvas follows the window immediately; the expensive reseed waits for
-  // the drag to settle. Grid metrics only change inside rebuildWorld(), so the
-  // world stays consistent with `grid` in between.
+  // The canvas follows the window immediately; the expensive world rebuild
+  // waits for the drag to settle. Grid metrics only change in rebuildWorld().
   window.addEventListener('resize', () => {
     resizeCanvas();
     clearTimeout(reseedTimer);

@@ -37,12 +37,27 @@
 
 .opening-line {
   position: absolute;
+  isolation: isolate;
   margin: 0;
   opacity: 0;
   font-size: clamp(18px, 2.5vw, 28px);
   line-height: 1.4;
   text-shadow: 0 2px 20px rgba(0, 0, 0, 0.8);
   will-change: opacity, transform;
+}
+
+.opening-line::before {
+  content: '';
+  position: absolute;
+  inset: -0.55em -0.8em;
+  z-index: -1;
+  background: rgba(3, 8, 10, 0.76);
+  border-radius: 8px;
+  box-shadow:
+    0 14px 36px rgba(0, 0, 0, 0.34),
+    inset 0 0 0 1px rgba(0, 204, 204, 0.10);
+  -webkit-backdrop-filter: blur(6px);
+  backdrop-filter: blur(6px);
 }
 
 .opening-line[data-beat="world"] {
@@ -80,7 +95,24 @@
   stroke-dasharray: 5 5;
 }
 
-#observed-entity { fill: #fff; filter: drop-shadow(0 0 7px #fff); }
+.content-surface {
+  fill: rgba(3, 8, 10, 0.72);
+  stroke: rgba(0, 204, 204, 0.14);
+  stroke-width: 1;
+  vector-effect: non-scaling-stroke;
+}
+
+#network-surface { fill: rgba(3, 8, 10, 0.58); }
+#inset-surface { fill: rgba(3, 8, 10, 0.80); }
+
+#observed-entity,
+.vision-glyph {
+  font-family: 'Courier New', Courier, 'Liberation Mono', monospace;
+  font-size: 18px;
+  text-anchor: middle;
+  dominant-baseline: central;
+  filter: drop-shadow(0 0 6px currentColor);
+}
 
 .vision-frame {
   fill: rgba(0, 204, 204, 0.03);
@@ -88,7 +120,6 @@
   stroke-width: 1;
   stroke-dasharray: 5 5;
 }
-.vision-dot { fill: #fff; filter: drop-shadow(0 0 5px #fff); }
 #perception-label,
 .vision-label {
   fill: rgba(255, 255, 255, 0.5);
@@ -111,7 +142,13 @@
 .server-pulse { fill: none; stroke: #0cc; stroke-width: 1.5; opacity: 0; pointer-events: none; }
 .wire-packet { fill: #0cc; filter: drop-shadow(0 0 4px rgba(0, 204, 204, 0.9)); opacity: 0; pointer-events: none; }
 
-.client-node { fill: var(--client-color, #0cc); }
+.client-node {
+  fill: var(--client-color, #0cc);
+  font-family: 'Courier New', Courier, 'Liberation Mono', monospace;
+  font-size: 14px;
+  text-anchor: middle;
+  dominant-baseline: central;
+}
 .client-identity-ring { fill: none; stroke: rgba(255, 255, 255, 0.44); stroke-width: 1; }
 .network-client[data-state="lagging"] .client-identity-ring { stroke-dasharray: 2 3; stroke-width: 2; }
 .network-client[data-state="stalled"] .client-identity-ring { stroke: #f96; stroke-dasharray: 1 3; stroke-width: 2; }
@@ -182,10 +219,18 @@
 
 #legend-layer text { text-anchor: middle; fill: rgba(255, 255, 255, 0.78); }
 #legend-layer .legend-species { font-size: clamp(16px, 2vw, 24px); letter-spacing: 0.16em; }
-#legend-layer .legend-catalyst { fill: #0cc; }
-#legend-layer .legend-membrane { fill: #be8cff; }
-#legend-layer .legend-spore { fill: #ffa046; }
+#legend-layer .legend-catalyst { fill: #ff9f43; }
+#legend-layer .legend-membrane { fill: #b47cf0; }
+#legend-layer .legend-spore { fill: #3fe0e8; }
+#legend-layer .legend-detail { font-size: clamp(9px, 1.05vw, 13px); letter-spacing: 0.06em; }
 #legend-cycle { font-size: clamp(10px, 1.2vw, 15px); letter-spacing: 0.08em; }
+
+.inset-glyph {
+  font-family: 'Courier New', Courier, 'Liberation Mono', monospace;
+  text-anchor: middle;
+  dominant-baseline: central;
+  pointer-events: none;
+}
 
 .opening-line[data-beat="concurrency"] {
   left: 16vw;
@@ -341,6 +386,10 @@
 .bp-token { fill: #fc6; filter: drop-shadow(0 0 6px #fc6); }
 
 @media (max-width: 800px) {
+  .opening-line::before { background: rgba(3, 8, 10, 0.84); }
+  #network-surface { fill: rgba(3, 8, 10, 0.68); }
+  #inset-surface { fill: rgba(3, 8, 10, 0.86); }
+
   .opening-line[data-beat="world"] {
     left: 4vw;
     right: 4vw;

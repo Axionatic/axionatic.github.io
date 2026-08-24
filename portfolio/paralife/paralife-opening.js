@@ -73,12 +73,7 @@
 
   function clientPhase(progress, reducedMotion) {
     if (reducedMotion) return 'static';
-    const local = clamp01((progress - 0.55) / 0.45);
-    if (local < 0.18) return 'healthy';
-    if (local < 0.36) return 'lagging';
-    if (local < 0.55) return 'stalled';
-    if (local < 0.76) return 'reconnecting';
-    return 'recovered';
+    return durabilityFromScroll(progress).phase;
   }
 
   // One protagonist connection's durability story, scrubbed by scroll (not a free
@@ -126,6 +121,12 @@
 
   function create(root) {
     const SVG_NS = 'http://www.w3.org/2000/svg';
+    const glyphApi = window.ParalifeGlyphWorld;
+    const primaryGlyphs = [
+      glyphApi.glyphFor('catalyst'),
+      glyphApi.glyphFor('membrane'),
+      glyphApi.glyphFor('spore'),
+    ];
     const svg = document.getElementById('opening-visuals');
     const frame = document.getElementById('morph-frame');
     const observed = document.getElementById('observed-entity');
@@ -133,9 +134,12 @@
     const frameLayer = document.getElementById('frame-layer');
     const perceptionLayer = document.getElementById('perception-layer');
     const legendLayer = document.getElementById('legend-layer');
+    const legendSurface = document.getElementById('legend-surface');
     const legendSpecies = Array.from(legendLayer.querySelectorAll('.legend-species'));
+    const legendDetails = Array.from(legendLayer.querySelectorAll('.legend-detail'));
     const legendCycle = document.getElementById('legend-cycle');
     const networkLayer = document.getElementById('network-layer');
+    const networkSurface = document.getElementById('network-surface');
     const clientLayer = document.getElementById('network-clients');
     const linkLayer = document.getElementById('network-links');
     const serverLabel = document.getElementById('server-label');
@@ -149,9 +153,11 @@
     const extraWindows = Array.from({ length: 3 }, (_, index) => {
       const rect = document.createElementNS(SVG_NS, 'rect');
       rect.classList.add('vision-frame');
-      const dot = document.createElementNS(SVG_NS, 'circle');
-      dot.classList.add('vision-dot');
-      dot.setAttribute('r', '4');
+      const dot = document.createElementNS(SVG_NS, 'text');
+      dot.classList.add('vision-glyph');
+      const descriptor = primaryGlyphs[(index + 1) % primaryGlyphs.length];
+      dot.textContent = descriptor.glyph;
+      dot.style.fill = descriptor.color;
       const label = document.createElementNS(SVG_NS, 'text');
       label.classList.add('vision-label');
       label.textContent = `ENTITY ${index + 2} VIEW`;
@@ -173,13 +179,14 @@
       group.classList.add('network-client');
       group.dataset.clientId = id;
       group.dataset.identityMarker = id;
-      group.style.setProperty('--client-color', ['#0cc', '#be8cff', '#ffa046'][index % 3]);
+      const identity = primaryGlyphs[index % primaryGlyphs.length];
+      group.style.setProperty('--client-color', identity.color);
       const ring = document.createElementNS(SVG_NS, 'circle');
       ring.classList.add('client-identity-ring');
       ring.setAttribute('r', '8');
-      const node = document.createElementNS(SVG_NS, 'circle');
+      const node = document.createElementNS(SVG_NS, 'text');
       node.classList.add('client-node');
-      node.setAttribute('r', '4');
+      node.textContent = identity.glyph;
       group.append(ring, node);
       clientLayer.appendChild(group);
 
@@ -237,6 +244,11 @@
     const frameInset = document.createElementNS(SVG_NS, 'g');
     frameInset.setAttribute('id', 'frame-inset');
     frameInset.style.opacity = '0';
+    const insetSurface = document.createElementNS(SVG_NS, 'rect');
+    insetSurface.setAttribute('id', 'inset-surface');
+    insetSurface.classList.add('content-surface');
+    insetSurface.setAttribute('rx', '8');
+    frameInset.appendChild(insetSurface);
     const insetCodec = document.createElementNS(SVG_NS, 'text');
     insetCodec.classList.add('inset-codec');
     insetCodec.textContent = 'PARA64 · high-efficiency codec';
@@ -246,8 +258,11 @@
     const insetCells = Array.from({ length: 25 }, () => {
       const r = document.createElementNS(SVG_NS, 'rect');
       r.classList.add('inset-cell');
+      const glyph = document.createElementNS(SVG_NS, 'text');
+      glyph.classList.add('inset-glyph');
       frameInset.appendChild(r);
-      return r;
+      frameInset.appendChild(glyph);
+      return { rect: r, glyph };
     });
     const insetArrow = document.createElementNS(SVG_NS, 'text');
     insetArrow.classList.add('inset-arrow');
@@ -270,6 +285,41 @@
     const fx = (v, w) => { let s = ''; for (let i = 0; i < w; i++) { s = A64[v & 63] + s; v >>= 6; } return s; };
     const vr = (v) => { let s = A64[v & 63]; v >>= 6; while (v > 0) { s = A64[v & 63] + s; v >>= 6; } return s; };
     const FAN_STAGGER = 0.16;  // spread across connections, so it reads as fan-out
+    const WIRE_KINDS = ['C', 'M', 'S', 'D', 'N', 'T', '0', '1', '2', '3', '4', '5', 'R', 'F'];
+    const ROLE_BY_KIND = ['locomotor', 'feeder', 'attacker', 'defender', 'reproducer', 'sensor'];
+
+    function insetDescriptor(gx, gy, tick, center) {
+      if (center) return { wireKind: 'C', species: 0, entityState: 0, envState: 0 };
+      const hash = ((gx * 73856093) ^ (gy * 19349663) ^ (tick * 83492791)) >>> 0;
+      const wireKind = hash % 100 < 42 ? WIRE_KINDS[hash % WIRE_KINDS.length] : undefined;
+      const envState = hash % 11 === 0 ? 0x02 : hash % 13 === 0 ? 0x04 : 0;
+      if (!wireKind && !envState) return null;
+      return {
+        wireKind,
+        species: wireKind && /^[0-5]$/.test(wireKind) ? hash % 3 : undefined,
+        entityState: 0,
+        envState,
+      };
+    }
+
+    function descriptorAppearance(descriptor) {
+      const kind = descriptor.wireKind;
+      if (kind === 'C') return glyphApi.glyphFor('catalyst');
+      if (kind === 'M') return glyphApi.glyphFor('membrane');
+      if (kind === 'S') return glyphApi.glyphFor('spore');
+      if (kind === 'D' || kind === 'N' || kind === 'T') return glyphApi.glyphFor('bondedPair');
+      if (kind && /^[0-5]$/.test(kind)) {
+        return glyphApi.glyphFor('composite', { role: ROLE_BY_KIND[Number(kind)], species: descriptor.species });
+      }
+      if (kind === 'R') return glyphApi.glyphFor('rock');
+      if (kind === 'F') return glyphApi.glyphFor('nutrient');
+      if (descriptor.envState & 0x02) return glyphApi.glyphFor('toxin');
+      return glyphApi.glyphFor('mutagen', { strain: 3 });
+    }
+
+    function descriptorPresence(descriptor) {
+      return (descriptor.wireKind ? 1 : 0) | (descriptor.envState ? 2 : 0);
+    }
 
     function render({ progress, techFade, viewport, windows, ambientTime }) {
       const state = deriveState(progress, reduced.matches);
@@ -298,6 +348,19 @@
       const radiusX = mobile ? viewport.width * 0.38 : viewport.width * 0.19;
       const radiusY = mobile ? viewport.height * 0.22 : viewport.height * 0.30;
 
+      legendSurface.setAttribute('x', legendRect.x.toFixed(2));
+      legendSurface.setAttribute('y', legendRect.y.toFixed(2));
+      legendSurface.setAttribute('width', legendRect.width.toFixed(2));
+      legendSurface.setAttribute('height', legendRect.height.toFixed(2));
+
+      const networkPadX = mobile ? 14 : 32;
+      const networkTop = server.y - radiusY - (mobile ? 34 : 52);
+      const networkBottom = server.y + radiusY + (mobile ? 26 : 34);
+      networkSurface.setAttribute('x', (server.x - radiusX - networkPadX).toFixed(2));
+      networkSurface.setAttribute('y', networkTop.toFixed(2));
+      networkSurface.setAttribute('width', (radiusX * 2 + networkPadX * 2).toFixed(2));
+      networkSurface.setAttribute('height', (networkBottom - networkTop).toFixed(2));
+
       svg.setAttribute('viewBox', `0 0 ${viewport.width} ${viewport.height}`);
       frame.setAttribute('x', currentFrame.x.toFixed(2));
       frame.setAttribute('y', currentFrame.y.toFixed(2));
@@ -306,8 +369,10 @@
       frame.dataset.role = networkMorph > 0.98 ? 'server' : 'frame';
       frame.dataset.state = 'healthy';
       const primaryEntity = windows[0].entity;
-      observed.setAttribute('cx', primaryEntity.x.toFixed(2));
-      observed.setAttribute('cy', primaryEntity.y.toFixed(2));
+      observed.textContent = primaryGlyphs[0].glyph;
+      observed.style.fill = primaryGlyphs[0].color;
+      observed.setAttribute('x', primaryEntity.x.toFixed(2));
+      observed.setAttribute('y', primaryEntity.y.toFixed(2));
       perceptionLabel.setAttribute('x', (windows[0].rect.x + windows[0].rect.width / 2).toFixed(2));
       perceptionLabel.setAttribute('y', (windows[0].rect.y - 10).toFixed(2));
       extraWindows.forEach((extra, index) => {
@@ -321,19 +386,24 @@
         extra.rect.setAttribute('y', win.rect.y.toFixed(2));
         extra.rect.setAttribute('width', win.rect.width.toFixed(2));
         extra.rect.setAttribute('height', win.rect.height.toFixed(2));
-        extra.dot.setAttribute('cx', win.entity.x.toFixed(2));
-        extra.dot.setAttribute('cy', win.entity.y.toFixed(2));
+        extra.dot.setAttribute('x', win.entity.x.toFixed(2));
+        extra.dot.setAttribute('y', win.entity.y.toFixed(2));
         extra.label.setAttribute('x', (win.rect.x + win.rect.width / 2).toFixed(2));
         extra.label.setAttribute('y', (win.rect.y - 10).toFixed(2));
       });
       const legendCenterX = legendRect.x + legendRect.width / 2;
-      const legendStartY = legendRect.y + legendRect.height * 0.30;
+      const legendStartY = legendRect.y + legendRect.height * 0.18;
       legendSpecies.forEach((label, index) => {
         label.setAttribute('x', legendCenterX.toFixed(2));
-        label.setAttribute('y', (legendStartY + index * Math.min(54, legendRect.height * 0.14)).toFixed(2));
+        label.setAttribute('y', (legendStartY + index * Math.min(42, legendRect.height * 0.10)).toFixed(2));
+      });
+      const detailStartY = legendRect.y + legendRect.height * 0.54;
+      legendDetails.forEach((label, index) => {
+        label.setAttribute('x', legendCenterX.toFixed(2));
+        label.setAttribute('y', (detailStartY + index * Math.min(30, legendRect.height * 0.07)).toFixed(2));
       });
       legendCycle.setAttribute('x', legendCenterX.toFixed(2));
-      legendCycle.setAttribute('y', (legendRect.y + legendRect.height * 0.82).toFixed(2));
+      legendCycle.setAttribute('y', (legendRect.y + legendRect.height * 0.94).toFixed(2));
 
       // Tick clock: a free-running loop off ambientTime, gated to the beat and
       // stilled under reduced motion so the static diagram is undisturbed.
@@ -457,10 +527,14 @@
         const anchor = big ? 'start' : 'middle';
         const textX = big ? ix : viewport.width / 2;
         const gridX = big ? ix : viewport.width / 2 - gridW / 2;
+        const surfaceX = big ? ix - 18 : viewport.width * 0.04;
+        const surfaceY = iy - (big ? 24 : 18);
+        const surfaceWidth = big ? Math.min(viewport.width * 0.35, 470) : viewport.width * 0.92;
+        insetSurface.setAttribute('x', surfaceX.toFixed(2));
+        insetSurface.setAttribute('y', surfaceY.toFixed(2));
+        insetSurface.setAttribute('width', surfaceWidth.toFixed(2));
         [insetCodec, insetLabel, insetArrow, insetBytes, insetCaption].forEach((t) => t.setAttribute('text-anchor', anchor));
         const tick = Math.floor(ambientTime / TICK_PERIOD);
-        const species = ['#0cc', '#be8cff', '#ffa046'];
-        const KINDS = 'CMSDNTF'; // real SCHEMA §8.1.1 kind codes
         insetCodec.setAttribute('x', textX.toFixed(2));
         insetCodec.setAttribute('y', iy.toFixed(2));
         insetLabel.setAttribute('x', textX.toFixed(2));
@@ -468,19 +542,39 @@
         // Lay out the grid and collect the lit (occupied) cells as we go — they
         // feed the s-block below, so the frame tracks the vision the reader sees.
         const litCells = [];
-        insetCells.forEach((r, k) => {
+        insetCells.forEach((cellParts, k) => {
           const gx = k % 5, gy = (k / 5) | 0;
+          const r = cellParts.rect;
+          const glyph = cellParts.glyph;
           r.setAttribute('x', (gridX + gx * cell).toFixed(2));
           r.setAttribute('y', (gridTop + gy * cell).toFixed(2));
           r.setAttribute('width', String(cell - 2));
           r.setAttribute('height', String(cell - 2));
+          glyph.setAttribute('x', (gridX + gx * cell + (cell - 2) / 2).toFixed(2));
+          glyph.setAttribute('y', (gridTop + gy * cell + (cell - 2) / 2).toFixed(2));
+          glyph.style.fontSize = Math.round(cell * 0.68) + 'px';
           const center = gx === 2 && gy === 2;
-          // Spatial hash decorrelates cells across ticks, so both the pattern
-          // and the occupied-count vary organically frame to frame.
-          const h = ((gx * 73856093) ^ (gy * 19349663) ^ (tick * 83492791)) >>> 0;
-          const lit = h % 100 < 38;
-          if (!center && lit) litCells.push([gx - 2, gy - 2, KINDS[h % KINDS.length]]);
-          r.setAttribute('fill', center ? '#fff' : lit ? species[h % 3] : 'rgba(0,204,204,0.05)');
+          const descriptor = insetDescriptor(gx, gy, tick, center);
+          delete r.dataset.entry;
+          if (!descriptor) {
+            glyph.textContent = '';
+            r.setAttribute('fill', 'rgba(0,204,204,0.05)');
+            delete r.dataset.presence;
+            delete r.dataset.wireKind;
+            delete r.dataset.envState;
+            return;
+          }
+          const appearance = descriptorAppearance(descriptor);
+          const presence = descriptorPresence(descriptor);
+          glyph.textContent = appearance.glyph;
+          glyph.setAttribute('fill', center ? '#fff' : appearance.color);
+          r.dataset.presence = String(presence);
+          r.dataset.wireKind = descriptor.wireKind || '';
+          r.dataset.envState = String(descriptor.envState || 0);
+          if (descriptor.envState & 0x02) r.setAttribute('fill', 'rgba(224,90,78,0.38)');
+          else if (descriptor.envState & 0x04) r.setAttribute('fill', glyphApi.glyphFor('mutagen', { strain: 3 }).color);
+          else r.setAttribute('fill', 'rgba(0,204,204,0.05)');
+          if (!center) litCells.push({ dx: gx - 2, dy: gy - 2, descriptor, cell: r });
         });
         const gridBottom = gridTop + gridH;
         // A real-shaped Paralife T-frame (SCHEMA §6.3.1), illustrative not exact:
@@ -488,8 +582,15 @@
         // Position is held constant (the identity that survives the stall); energy
         // drifts; the s-block lists a few visible cells as <relCoord><presence><kind>.
         const rel = (d) => (d >= 0 ? '+' : '-') + A64[Math.abs(d)];
-        const sBlock = litCells.slice(0, big ? 4 : 3)
-          .map(([dx, dy, kind]) => `${rel(dx)}${rel(dy)}1${kind}`).join(',');
+        const sBlock = litCells.slice(0, big ? 4 : 3).map(({ dx, dy, descriptor, cell: r }) => {
+          const presence = descriptorPresence(descriptor);
+          const entry = `${rel(dx)}${rel(dy)}${A64[presence]}` +
+            `${descriptor.wireKind || ''}` +
+            `${descriptor.entityState ? A64[descriptor.entityState] : ''}` +
+            `${descriptor.envState ? A64[descriptor.envState] : ''}`;
+          r.dataset.entry = entry;
+          return entry;
+        }).join(',');
         const energy = 24 + (tick % 25);
         const frame = `T|${fx(tick % 262144, 3)}|0A1B|${vr(energy)}/m|2|s${sBlock}`;
         insetArrow.style.display = big ? '' : 'none';
@@ -502,6 +603,7 @@
         insetCaption.setAttribute('x', textX.toFixed(2));
         insetCaption.setAttribute('y', (gridBottom + (big ? 70 : 30)).toFixed(2));
         insetCaption.textContent = 'T | tick | x y | energy/max | radius | s: cells';
+        insetSurface.setAttribute('height', (gridBottom + (big ? 88 : 42) - surfaceY).toFixed(2));
       }
       serverLabel.setAttribute('x', server.x.toFixed(2));
       serverLabel.setAttribute('y', (server.y + 4).toFixed(2));
