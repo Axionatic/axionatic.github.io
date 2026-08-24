@@ -1,5 +1,9 @@
 import { test, expect } from '@playwright/test';
-import { PORTFOLIO_PAGES, navigateToPortfolioPage } from '../helpers/pages';
+import {
+  PORTFOLIO_PAGES,
+  navigateToPortfolioPage,
+  type PortfolioPageName,
+} from '../helpers/pages';
 import { scrollToProgress } from '../helpers/scroll';
 import { rectsOverlap } from '../helpers/geometry';
 import { type Page } from '@playwright/test';
@@ -16,7 +20,8 @@ import { type Page } from '@playwright/test';
  */
 
 // Map pages to their fixed interactive panel selectors
-const PAGE_PANELS: Record<string, string[]> = {
+const PAGE_PANELS: Record<PortfolioPageName, string[]> = {
+  paralife: ['#header-panel', '.nav-btn'],
   jointly: ['#header-panel', '#ranking', '.nav-btn'],
   oasis: ['#header-panel', '#dashboard', '.nav-btn'],
   guestflow: ['#header-panel', '#pipeline', '#narrative-panel', '.nav-btn'],

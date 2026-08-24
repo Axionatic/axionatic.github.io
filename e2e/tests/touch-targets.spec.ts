@@ -1,7 +1,7 @@
 import { test, expect } from '@playwright/test';
 import { PORTFOLIO_PAGES, navigateToPortfolioPage } from '../helpers/pages';
 import { scrollToProgress } from '../helpers/scroll';
-import { getBox, minTouchDimension } from '../helpers/geometry';
+import { minTouchDimension } from '../helpers/geometry';
 
 /**
  * Issue 2 — Touch targets too small
@@ -47,26 +47,34 @@ for (const { name, path, selector } of PAGES_WITH_BUTTONS) {
   });
 }
 
-// Also check the nav-btn__link on all pages
+// Also check both navigation links on all pages
 for (const { name, path } of PORTFOLIO_PAGES) {
-  test(`${name}: .nav-btn__link touch target >= ${MIN_TOUCH_SIZE}px`, async ({ page }) => {
+  test(`${name}: navigation links have >= ${MIN_TOUCH_SIZE}px touch targets`, async ({ page }) => {
     await navigateToPortfolioPage(page, path);
 
-    const backLink = page.locator('.nav-btn__link');
-    const box = await backLink.boundingBox();
-    expect(box).toBeTruthy();
+    const navigation = page.getByRole('navigation', { name: 'Navigation' });
+    await expect(navigation.getByRole('link')).toHaveCount(2);
 
-    const minDim = minTouchDimension({
-      x: box!.x,
-      y: box!.y,
-      width: box!.width,
-      height: box!.height,
-      right: box!.x + box!.width,
-      bottom: box!.y + box!.height,
-    });
-    expect(
-      minDim,
-      `${name} .nav-btn__link min dimension is ${minDim}px, needs ${MIN_TOUCH_SIZE}px`,
-    ).toBeGreaterThanOrEqual(MIN_TOUCH_SIZE);
+    for (const linkName of ['Home', 'Back']) {
+      const link = navigation.getByRole('link', { name: linkName, exact: true });
+      await expect(link).toBeVisible();
+
+      const box = await link.boundingBox();
+      expect(box, `${name} ${linkName} link has no bounding box`).toBeTruthy();
+      if (!box) continue;
+
+      const minDim = minTouchDimension({
+        x: box.x,
+        y: box.y,
+        width: box.width,
+        height: box.height,
+        right: box.x + box.width,
+        bottom: box.y + box.height,
+      });
+      expect(
+        minDim,
+        `${name} ${linkName} link min dimension is ${minDim}px, needs ${MIN_TOUCH_SIZE}px`,
+      ).toBeGreaterThanOrEqual(MIN_TOUCH_SIZE);
+    }
   });
 }

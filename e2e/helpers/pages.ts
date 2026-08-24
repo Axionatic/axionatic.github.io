@@ -1,6 +1,7 @@
 import { type Page } from '@playwright/test';
 
 export const PORTFOLIO_PAGES = [
+  { name: 'paralife', path: '/portfolio/paralife/' },
   { name: 'jointly', path: '/portfolio/jointly/' },
   { name: 'oasis', path: '/portfolio/oasis/' },
   { name: 'guestflow', path: '/portfolio/guestflow/' },

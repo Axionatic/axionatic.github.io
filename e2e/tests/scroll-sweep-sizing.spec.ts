@@ -1,5 +1,9 @@
 import { test, expect } from '@playwright/test';
-import { PORTFOLIO_PAGES, navigateToPortfolioPage } from '../helpers/pages';
+import {
+  PORTFOLIO_PAGES,
+  navigateToPortfolioPage,
+  type PortfolioPageName,
+} from '../helpers/pages';
 import { scrollToProgress } from '../helpers/scroll';
 import { isElementVisible } from '../helpers/geometry';
 
@@ -14,7 +18,7 @@ import { isElementVisible } from '../helpers/geometry';
  * - #title-overlay width ≥ 60px when visible
  */
 
-const TRACKED_ELEMENTS: Record<string, string[]> = {
+const TRACKED_ELEMENTS: Record<PortfolioPageName, string[]> = {
   paralife: ['#header-panel', '#title-overlay', '#scroll-hint', '.nav-btn', '#opening-story', '#opening-visuals'],
   jointly: ['#header-panel', '#title-overlay', '#scroll-hint', '.nav-btn', '#ranking', '#narrative'],
   oasis: ['#header-panel', '#title-overlay', '#scroll-hint', '.nav-btn', '#dashboard'],
@@ -24,12 +28,7 @@ const TRACKED_ELEMENTS: Record<string, string[]> = {
 };
 
 const PROGRESS_STEPS = Array.from({ length: 11 }, (_, i) => +(i * 0.1).toFixed(1));
-const SIZING_PAGES = [
-  ...PORTFOLIO_PAGES,
-  { name: 'paralife', path: '/portfolio/paralife/' },
-] as const;
-
-for (const { name, path } of SIZING_PAGES) {
+for (const { name, path } of PORTFOLIO_PAGES) {
   test(`${name}: element sizing is sane across full scroll sweep`, async ({ page }) => {
     test.setTimeout(60_000);
     await navigateToPortfolioPage(page, path);

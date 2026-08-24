@@ -1,5 +1,9 @@
 import { test, expect } from '@playwright/test';
-import { PORTFOLIO_PAGES, navigateToPortfolioPage } from '../helpers/pages';
+import {
+  PORTFOLIO_PAGES,
+  navigateToPortfolioPage,
+  type PortfolioPageName,
+} from '../helpers/pages';
 import { scrollToProgress } from '../helpers/scroll';
 import { isElementVisible } from '../helpers/geometry';
 
@@ -13,7 +17,8 @@ import { isElementVisible } from '../helpers/geometry';
 const SCREENSHOT_POSITIONS = [0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0] as const;
 
 /** Panels that should be hidden early and visible late in the scroll. */
-const PAGE_PANELS: Record<string, string[]> = {
+const PAGE_PANELS: Record<PortfolioPageName, string[]> = {
+  paralife: [],
   jointly: ['#ranking'],
   oasis: ['#dashboard'],
   mystery: [],
