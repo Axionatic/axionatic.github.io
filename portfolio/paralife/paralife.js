@@ -17,9 +17,8 @@ const VIGNETTE = 0.82;           // darkens the edges so panels stay readable
 // -- Vision scoping ----------------------------------------------------------
 const VISION_RADIUS = 5;         // cells visible around the observed entity
 const OUTSIDE_DIM = 0.16;        // brightness of redacted cells when fully scoped
-const WINDOWS_MAX = 4;
-const WINDOW_SLOT_SPACING = 0.28;          // slot pitch, fraction of viewport width
-const WINDOW_WOBBLE = [0, -0.06, 0.07, -0.04]; // per-slot vertical offset, fraction of height
+const WINDOWS_MAX = 5;
+const VISION_AREA_RATIO = 0.40;  // max fraction of the perception band occupied by frames
 
 // -- Scroll ------------------------------------------------------------------
 const SCRUB_SMOOTHING = 0.8;
@@ -44,7 +43,7 @@ let reseedTimer = null;
 const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
 
 let progressBar, scrollHint, headerPanelEl, narrativePanelEl, openingVisualsEl;
-let titleOverlayEl;
+let titleOverlayEl, perceptionLineEl;
 let openingController;
 
 // ---------------------------------------------------------------------------
@@ -70,27 +69,76 @@ function visionAmount() {
 }
 
 /** Observed-entity windows, snapped to the cell grid so the SVG frames sit
- *  exactly on the undimmed cells. Deterministic per viewport: as many as fit
- *  comfortably across the width, always 1 on mobile. windows[0] is the
- *  centre slot — the one the morph frame carries into the legend. */
+ *  exactly on the undimmed cells. Frames fill no more than the configured
+ *  share of the clear band between the header and perception copy, then pack
+ *  into the most horizontal centred grid that fits. */
 function visionWindows() {
   const winCells = VISION_RADIUS * 2 + 1;
-  const count = W <= 800 ? 1
-    : clamp(Math.floor(W / (winCells * cellPx * 2.4)), 1, WINDOWS_MAX);
-  const baseY = W <= 800 ? 0.46 : 0.42;
-  const slots = [];
-  for (let i = 0; i < count; i++) {
-    slots.push({
-      fx: 0.5 + (i - (count - 1) / 2) * WINDOW_SLOT_SPACING,
-      fy: baseY + WINDOW_WOBBLE[i],
-    });
+  const winPx = winCells * cellPx;
+  const rem = parseFloat(getComputedStyle(document.documentElement).fontSize) || 16;
+  const headerBottom = headerPanelEl.getBoundingClientRect().bottom;
+  const copyTop = perceptionLineEl.getBoundingClientRect().top;
+  const band = {
+    x: rem,
+    y: headerBottom + rem,
+    width: Math.max(0, W - rem * 2),
+    height: Math.max(0, copyTop - rem - (headerBottom + rem)),
+  };
+  const bandArea = band.width * band.height;
+  const frameArea = winPx * winPx;
+  let count = clamp(Math.floor((bandArea * VISION_AREA_RATIO) / frameArea), 1, WINDOWS_MAX);
+  let columns = 1;
+
+  while (count > 1) {
+    columns = 0;
+    for (let candidate = count; candidate >= 1; candidate--) {
+      const rows = Math.ceil(count / candidate);
+      if (band.width / candidate >= winPx + rem && band.height / rows >= winPx + rem) {
+        columns = candidate;
+        break;
+      }
+    }
+    if (columns) break;
+    count--;
   }
-  slots.sort((a, b) => Math.abs(a.fx - 0.5) - Math.abs(b.fx - 0.5));
+  if (count === 1) columns = 1;
+
+  const rows = Math.ceil(count / columns);
+  const slots = [];
+  for (let row = 0; row < rows; row++) {
+    const items = Math.min(columns, count - row * columns);
+    const slotWidth = band.width / items;
+    const slotHeight = band.height / rows;
+    for (let column = 0; column < items; column++) {
+      slots.push({
+        centerX: band.x + (column + 0.5) * slotWidth,
+        centerY: band.y + (row + 0.5) * slotHeight,
+        bounds: {
+          x: band.x + column * slotWidth + rem / 2,
+          y: band.y + row * slotHeight + rem / 2,
+          width: slotWidth - rem,
+          height: slotHeight - rem,
+        },
+      });
+    }
+  }
+  const bandCenterX = band.x + band.width / 2;
+  const bandCenterY = band.y + band.height / 2;
+  slots.sort((a, b) => {
+    const distanceA = Math.hypot(a.centerX - bandCenterX, a.centerY - bandCenterY);
+    const distanceB = Math.hypot(b.centerX - bandCenterX, b.centerY - bandCenterY);
+    return distanceA - distanceB || a.centerY - b.centerY || a.centerX - b.centerX;
+  });
   return slots.map((slot) => {
-    const cx = clamp(Math.round((W * slot.fx - offsetX) / cellPx), VISION_RADIUS, cols - 1 - VISION_RADIUS);
-    const cy = clamp(Math.round((H * slot.fy - offsetY) / cellPx), VISION_RADIUS, rows - 1 - VISION_RADIUS);
+    const minCx = Math.ceil((slot.bounds.x - offsetX) / cellPx) + VISION_RADIUS;
+    const maxCx = Math.floor((slot.bounds.x + slot.bounds.width - winPx - offsetX) / cellPx) + VISION_RADIUS;
+    const minCy = Math.ceil((slot.bounds.y - offsetY) / cellPx) + VISION_RADIUS;
+    const maxCy = Math.floor((slot.bounds.y + slot.bounds.height - winPx - offsetY) / cellPx) + VISION_RADIUS;
+    const cx = clamp(Math.round((slot.centerX - offsetX) / cellPx - 0.5), minCx, maxCx);
+    const cy = clamp(Math.round((slot.centerY - offsetY) / cellPx - 0.5), minCy, maxCy);
     return {
       cx, cy,
+      bounds: slot.bounds,
       rect: {
         x: offsetX + (cx - VISION_RADIUS) * cellPx,
         y: offsetY + (cy - VISION_RADIUS) * cellPx,
@@ -111,13 +159,18 @@ function visionWindows() {
  *  bright cells, so the whole view reads as a discrete sampling of the world. */
 function driftEntities(windows) {
   windows.forEach((win, i) => {
-    const amp = win.rect.width * 0.18;
+    const ampX = Math.max(0, Math.min(win.rect.width * 0.18, (win.bounds.width - win.rect.width) / 2));
+    const ampY = Math.max(0, Math.min(win.rect.height * 0.18, (win.bounds.height - win.rect.height) / 2));
     const ex = reducedMotion.matches ? win.center.x
-      : win.center.x + Math.sin(time * 0.45 + i * 2.1) * amp;
+      : win.center.x + Math.sin(time * 0.45 + i * 2.1) * ampX;
     const ey = reducedMotion.matches ? win.center.y
-      : win.center.y + Math.cos(time * 0.31 + i * 1.4) * amp;
-    const cx = clamp(Math.round((ex - offsetX) / cellPx - 0.5), VISION_RADIUS, cols - 1 - VISION_RADIUS);
-    const cy = clamp(Math.round((ey - offsetY) / cellPx - 0.5), VISION_RADIUS, rows - 1 - VISION_RADIUS);
+      : win.center.y + Math.cos(time * 0.31 + i * 1.4) * ampY;
+    const minCx = Math.ceil((win.bounds.x - offsetX) / cellPx) + VISION_RADIUS;
+    const maxCx = Math.floor((win.bounds.x + win.bounds.width - win.rect.width - offsetX) / cellPx) + VISION_RADIUS;
+    const minCy = Math.ceil((win.bounds.y - offsetY) / cellPx) + VISION_RADIUS;
+    const maxCy = Math.floor((win.bounds.y + win.bounds.height - win.rect.height - offsetY) / cellPx) + VISION_RADIUS;
+    const cx = clamp(Math.round((ex - offsetX) / cellPx - 0.5), minCx, maxCx);
+    const cy = clamp(Math.round((ey - offsetY) / cellPx - 0.5), minCy, maxCy);
     win.cx = cx;
     win.cy = cy;
     win.rect.x = offsetX + (cx - VISION_RADIUS) * cellPx;
@@ -294,6 +347,8 @@ function init() {
   scrollHint = document.getElementById('scroll-hint');
   headerPanelEl = document.getElementById('header-panel');
   narrativePanelEl = document.getElementById('opening-story');
+  perceptionLineEl = narrativePanelEl.querySelector('.opening-line[data-beat="perception"]');
+  narrativePanelEl.dataset.visionAreaRatio = String(VISION_AREA_RATIO);
   openingVisualsEl = document.getElementById('opening-visuals');
   titleOverlayEl = document.getElementById('title-overlay');
   openingController = window.ParalifeOpening.create(narrativePanelEl);
