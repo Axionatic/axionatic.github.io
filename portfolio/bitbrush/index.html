@@ -89,8 +89,8 @@
         <div class="row-text">
           <ul>
             <li>Painted locally first for instant feedback, then persisted and broadcast server-side</li>
-            <li>Full canvas state delivered on first subscribe &mdash; late joiners never miss a pixel</li>
-            <li>Anonymous multiplayer via client-generated UUID &mdash; no sign-up required</li>
+            <li>Full canvas state delivered on first subscribe. Late joiners won't miss a pixel</li>
+            <li>Anonymous multiplayer via client-generated UUID; no sign-up required</li>
             <li>Cloudflare Turnstile blocks bots without interrupting painters</li>
           </ul>
         </div>
@@ -99,7 +99,7 @@
       <div class="row row--reverse">
         <div class="row-visual">
           <div class="pixel-log">
-            <div class="log-header">placement log &mdash; pixel (12, 7)</div>
+            <div class="log-header">placement log: pixel (12, 7)</div>
             <div class="log-entry log-old">
               <span class="log-swatch" style="background:#f33"></span>
               <span class="log-action">placed</span>
@@ -127,9 +127,9 @@
         <h2 class="row-title">Append-only canvas</h2>
         <div class="row-text">
           <ul>
-            <li>Every pixel placement appended to the log &mdash; no updates, no deletes</li>
-            <li>Current state derived via MAX(placed_at) &mdash; last writer wins</li>
-            <li>Eraser writes palette index 0 &mdash; erasing without destroying history</li>
+            <li>Every pixel placement appended to the log. Full audit trail</li>
+            <li>Current state derived via MAX(placed_at): last writer wins</li>
+            <li>Eraser writes palette index 0, erasing without destroying history</li>
             <li>Full history enables stats, author tracking, and future canvas replay</li>
           </ul>
         </div>
@@ -153,17 +153,17 @@
               <div class="bank-stat">Per pixel placed</div>
               <div class="bank-stat">Atomic deduction</div>
               <div class="bank-stat">Partial batch OK</div>
-              <div class="bank-footer">compute() &mdash; no races</div>
+              <div class="bank-footer">compute() - no races</div>
             </div>
           </div>
         </div>
         <h2 class="row-title">Thread-safe banking</h2>
         <div class="row-text">
           <ul>
-            <li>ConcurrentHashMap.compute() &mdash; atomic balance check-and-deduct, no locks</li>
+            <li>ConcurrentHashMap.compute() - atomic balance check-and-deduct, no locks</li>
             <li>Immutable BankState record eliminates partial-mutation bugs</li>
             <li>Drag-painting with low balance: partial batch placed, not rejected outright</li>
-            <li>Per-user balance pushed via WebSocket &mdash; bank bar always in sync</li>
+            <li>Per-user balance pushed via WebSocket. Bank bar always in sync</li>
           </ul>
         </div>
       </div>
