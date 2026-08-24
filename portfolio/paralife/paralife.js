@@ -463,7 +463,138 @@ function init() {
     }
   }
 
+  initTechAnimations();
   render();
+}
+
+// ---------------------------------------------------------------------------
+// Tech-section SVG animations. Each SVG's markup is its resting/reduced-motion
+// state; the timelines reset it with .set() and loop.
+// ---------------------------------------------------------------------------
+function initArchAnimation() {
+  const dot = document.getElementById('arch-dot');
+  const leaves = [0, 1, 2].map(i => document.getElementById('arch-d' + i));
+  const queues = [0, 1, 2].map(i => document.getElementById('arch-q' + i));
+  const leafX = [100, 250, 400];
+
+  const tl = gsap.timeline({ repeat: -1, repeatDelay: 0.3 });
+  tl.fromTo('#arch-hub-glow', { opacity: 1 }, { opacity: 0.3, duration: 0.5 }, 0);
+  tl.set(dot, { attr: { cy: 46 }, opacity: 1 }, 0);
+  tl.to(dot, { attr: { cy: 274 }, duration: 1.2, ease: 'none' }, 0);
+  tl.to(dot, { opacity: 0, duration: 0.1 }, 1.2);
+  leaves.forEach((d, i) => {
+    tl.set(d, { attr: { cx: 250, cy: 274 }, opacity: 1 }, 1.2);
+    tl.to(d, { attr: { cx: leafX[i], cy: 300 }, duration: 0.4, ease: 'power1.in' }, 1.2);
+    tl.to(d, { opacity: 0, duration: 0.1 }, 1.6);
+    tl.fromTo(queues[i], { attr: { width: 0 } }, { attr: { width: 60 }, duration: 0.3, ease: 'power2.out' }, 1.6);
+    tl.to(queues[i], { attr: { width: 0 }, duration: 0.4, ease: 'power2.in' }, 1.9 + i * 0.05);
+  });
+}
+
+function initPinAnimation() {
+  const chip = id => document.getElementById(id);
+  const a = ['pin-a0', 'pin-a1', 'pin-a2'].map(chip);
+  const b = ['pin-b0', 'pin-b1', 'pin-b2'].map(chip);
+  const countA = { v: 16 };
+  const countEl = document.getElementById('pin-count-a');
+
+  const tl = gsap.timeline({ repeat: -1, repeatDelay: 1.2 });
+
+  // Reset: all chips queued on the right, rails clean, verdicts hidden.
+  // GSAP x/y on SVG <g> are absolute translate values.
+  tl.set([...a, ...b], { opacity: 1 });
+  a.forEach((c, i) => tl.set(c, { x: 340 + i * 52, y: 52 }));
+  b.forEach((c, i) => tl.set(c, { x: 340 + i * 52, y: 190 }));
+  tl.set('#pin-a0 rect', { fill: 'rgba(190,140,255,0.15)', stroke: 'rgba(190,140,255,0.6)' });
+  tl.set('#pin-rail-a', { fill: 'rgba(0,204,204,0.12)', stroke: 'rgba(0,204,204,0.5)' });
+  tl.set(['#pin-verdict-a', '#pin-verdict-b'], { opacity: 0 });
+  tl.call(() => { countA.v = 16; countEl.textContent = '16'; });
+
+  // Lane A: first VT mounts, blocks, pins the carrier; the rest never mount.
+  tl.to(a[0], { x: 40, duration: 0.6, ease: 'power2.out' }, 0);
+  tl.to(a[1], { x: 340, duration: 0.6, ease: 'power2.out' }, 0);
+  tl.to(a[2], { x: 392, duration: 0.6, ease: 'power2.out' }, 0);
+  tl.to('#pin-a0 rect', { fill: 'rgba(255,102,51,0.35)', stroke: '#f96', duration: 0.3 }, 0.9);
+  tl.to('#pin-rail-a', { fill: 'rgba(255,102,51,0.18)', stroke: 'rgba(255,102,51,0.7)', duration: 0.3 }, 0.9);
+  tl.to([a[1], a[2]], { x: '-=6', duration: 0.12, yoyo: true, repeat: 5, ease: 'power1.inOut' }, 1.3);
+  tl.to([a[1], a[2]], { opacity: 0.4, duration: 0.4 }, 1.3);
+  tl.to('#pin-verdict-a', { opacity: 1, duration: 0.3 }, 1.3);
+  tl.to(countA, {
+    v: 0, duration: 1.5, ease: 'none',
+    onUpdate: () => { countEl.textContent = Math.round(countA.v); }
+  }, 1.3);
+
+  // Lane B: each VT mounts, blocks, unmounts (parks above the rail), next mounts.
+  b.forEach((c, i) => {
+    const t = i * 0.9;
+    tl.to(c, { x: 40, duration: 0.5, ease: 'power2.out' }, t);
+    for (let j = i + 1; j < 3; j++) tl.to(b[j], { x: 340 + (j - i - 1) * 52, duration: 0.5, ease: 'power2.out' }, t);
+    tl.to(c, { x: 40 + i * 52, y: 128, opacity: 0.35, duration: 0.4, ease: 'power2.in' }, t + 0.6);
+  });
+  tl.to('#pin-verdict-b', { opacity: 1, duration: 0.3 }, 1.3);
+}
+
+function initBackpressureAnimation() {
+  const grace = { v: 10 };
+  const graceEl = document.getElementById('bp-grace');
+  const badge = document.getElementById('bp-badge');
+  const badgeText = document.getElementById('bp-badge-text');
+  const setBadge = (state) => () => {
+    badge.setAttribute('class', 'bp-badge bp-badge-' + state);
+    badgeText.textContent = state;
+  };
+  const setGrace = () => { graceEl.textContent = 'grace: ' + Math.round(grace.v) + ' ticks'; };
+
+  function build(reconnect) {
+    const tl = gsap.timeline({ onComplete: () => build(!reconnect) });
+    // Reset: draining fine, entity alive.
+    tl.set('#bp-queue', { attr: { height: 30, y: 178 }, fill: '#0cc' });
+    tl.set('#bp-entity', { opacity: 1 });
+    tl.set('#bp-ring', { opacity: 0, strokeDashoffset: 0 });
+    tl.set('#bp-token', { opacity: 0, attr: { cx: 330, cy: 120 } });
+    tl.call(() => { grace.v = 10; setGrace(); });
+    tl.call(setBadge('active'));
+
+    // Tick frames arrive; slow socket — queue climbs to the cap.
+    tl.fromTo('#bp-frame', { attr: { x: 66 }, opacity: 1 }, { attr: { x: 150 }, opacity: 0.2, duration: 0.45, ease: 'none', repeat: 4 }, 0);
+    tl.to('#bp-queue', { attr: { height: 176, y: 32 }, duration: 2.2, ease: 'power1.in' }, 0);
+
+    // Full: session stalls, entity dims, grace countdown runs.
+    tl.to('#bp-queue', { fill: '#f96', duration: 0.3 }, 2.2);
+    tl.call(setBadge('stalled'), null, 2.2);
+    tl.to('#bp-entity', { opacity: 0.35, duration: 0.3 }, 2.2);
+    tl.to('#bp-ring', { opacity: 1, duration: 0.2 }, 2.2);
+    const countdown = reconnect ? 1.2 : 2.4;
+    tl.to('#bp-ring', { strokeDashoffset: reconnect ? 75 : 151, duration: countdown, ease: 'none' }, 2.5);
+    tl.to(grace, { v: reconnect ? 5 : 0, duration: countdown, ease: 'none', onUpdate: setGrace }, 2.5);
+
+    const t = 2.5 + countdown;
+    if (reconnect) {
+      // Resume token rebinds the client to the same entity; queue drains.
+      tl.to('#bp-token', { opacity: 1, duration: 0.1 }, t);
+      tl.to('#bp-token', { attr: { cx: 430, cy: 120 }, duration: 0.5, ease: 'power2.inOut' }, t);
+      tl.to('#bp-token', { opacity: 0, duration: 0.1 }, t + 0.5);
+      tl.to('#bp-entity', { opacity: 1, duration: 0.2 }, t + 0.5);
+      tl.to('#bp-ring', { opacity: 0, duration: 0.3 }, t + 0.5);
+      tl.call(setBadge('active'), null, t + 0.5);
+      tl.to('#bp-queue', { attr: { height: 30, y: 178 }, fill: '#0cc', duration: 0.6, ease: 'power2.out' }, t + 0.5);
+      tl.to({}, { duration: 1.0 });
+    } else {
+      // Grace expires: entity dropped.
+      tl.to('#bp-entity', { opacity: 0, duration: 0.4 }, t);
+      tl.to('#bp-ring', { opacity: 0, duration: 0.4 }, t);
+      tl.call(setBadge('expired'), null, t);
+      tl.to({}, { duration: 1.2 });
+    }
+  }
+  build(true);
+}
+
+function initTechAnimations() {
+  if (reducedMotion.matches) return;
+  initArchAnimation();
+  initPinAnimation();
+  initBackpressureAnimation();
 }
 
 document.addEventListener('DOMContentLoaded', init);

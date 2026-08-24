@@ -81,22 +81,23 @@
       <!-- Row 1: Architecture — visual left, text right -->
       <div class="row">
         <div class="row-visual">
-          <svg class="arch-svg" viewBox="0 0 500 300" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <svg class="arch-svg" viewBox="0 0 500 352" fill="none" xmlns="http://www.w3.org/2000/svg">
             <defs>
               <filter id="tick-blur" x="-50%" y="-50%" width="200%" height="200%">
                 <feGaussianBlur stdDeviation="10"/>
               </filter>
             </defs>
-            <path class="arch-line" d="M 250 46 C 250 58, 250 62, 250 74"/>
-            <path class="arch-line" d="M 250 122 C 250 134, 250 138, 250 150"/>
-            <path class="arch-line" d="M 250 198 C 250 210, 250 214, 250 226"/>
-            <path class="arch-line" d="M 190 274 C 150 274, 120 274, 96 274"/>
-            <path class="arch-line" d="M 310 274 C 350 274, 380 274, 404 274"/>
+            <path class="arch-line" d="M 250 46 L 250 74"/>
+            <path class="arch-line" d="M 250 122 L 250 150"/>
+            <path class="arch-line" d="M 250 198 L 250 226"/>
+            <path class="arch-line" d="M 250 274 C 250 292, 100 282, 100 300"/>
+            <path class="arch-line" d="M 250 274 L 250 300"/>
+            <path class="arch-line" d="M 250 274 C 250 292, 400 282, 400 300"/>
 
-            <rect class="arch-hub-glow" x="150" y="6" width="200" height="40" rx="10"
+            <rect id="arch-hub-glow" x="150" y="6" width="200" height="40" rx="10"
                   fill="rgba(0,204,204,0.25)" filter="url(#tick-blur)"/>
             <rect class="arch-node" x="150" y="6" width="200" height="40" rx="10" style="stroke:rgba(0,204,204,0.6)"/>
-            <text class="arch-label" x="250" y="26">Tick &mdash; 2&thinsp;Hz</text>
+            <text class="arch-label" x="250" y="26">Tick &mdash; 2Hz</text>
             <text class="arch-label-sm" x="250" y="40">one writer thread</text>
 
             <rect class="arch-node" x="140" y="74" width="220" height="48" rx="10"/>
@@ -111,22 +112,31 @@
             <text class="arch-label" x="250" y="246">Broadcast</text>
             <text class="arch-label-sm" x="250" y="264">per-entity projection</text>
 
-            <rect class="arch-node arch-node-vt" x="16" y="252" width="80" height="44" rx="10"/>
-            <text class="arch-label-sm" x="56" y="270">virtual</text>
-            <text class="arch-label-sm" x="56" y="286">thread</text>
+            <rect class="arch-node arch-node-vt" x="45" y="300" width="110" height="38" rx="10"/>
+            <text class="arch-label-sm" x="100" y="314" style="font-size:12px">virtual thread</text>
+            <rect id="arch-q0" class="arch-queue" x="70" y="326" width="0" height="6" rx="3"/>
 
-            <rect class="arch-node arch-node-vt" x="404" y="252" width="80" height="44" rx="10"/>
-            <text class="arch-label-sm" x="444" y="270">virtual</text>
-            <text class="arch-label-sm" x="444" y="286">thread</text>
+            <rect class="arch-node arch-node-vt" x="195" y="300" width="110" height="38" rx="10"/>
+            <text class="arch-label-sm" x="250" y="314" style="font-size:12px">virtual thread</text>
+            <rect id="arch-q1" class="arch-queue" x="220" y="326" width="0" height="6" rx="3"/>
+
+            <rect class="arch-node arch-node-vt" x="345" y="300" width="110" height="38" rx="10"/>
+            <text class="arch-label-sm" x="400" y="314" style="font-size:12px">virtual thread</text>
+            <rect id="arch-q2" class="arch-queue" x="370" y="326" width="0" height="6" rx="3"/>
+
+            <circle id="arch-dot" class="arch-dot" cx="250" cy="46" r="5" opacity="0"/>
+            <circle id="arch-d0" class="arch-dot" cx="250" cy="274" r="4" opacity="0"/>
+            <circle id="arch-d1" class="arch-dot" cx="250" cy="274" r="4" opacity="0"/>
+            <circle id="arch-d2" class="arch-dot" cx="250" cy="274" r="4" opacity="0"/>
           </svg>
         </div>
         <h2 class="row-title row-title-hero">One writer, a thousand readers</h2>
         <div class="row-text">
           <ul>
-            <li>Ordered event stages mutate the world &mdash; simulation, environment, actions, then broadcast</li>
-            <li>World mutation is single-writer on the tick thread; readers take an immutable snapshot, never the live grid</li>
-            <li>Each connection owns one virtual thread draining a bounded queue &mdash; the tick never waits on a socket</li>
-            <li>2,000 concurrent connections held, every tick inside its 500&thinsp;ms budget</li>
+            <li>One tick thread mutates the world: simulation, environment, actions, broadcast</li>
+            <li>1,000 readers get an immutable snapshot, not the live grid</li>
+            <li>One virtual thread per connection drains a bounded queue. The tick doesn&apos;t touch sockets</li>
+            <li>Stress-tested 2,000 connections: every tick under its 500ms budget</li>
           </ul>
         </div>
       </div>
@@ -134,34 +144,47 @@
       <!-- Row 2: Carrier pinning — text left, visual right -->
       <div class="row row--reverse">
         <div class="row-visual">
-          <div class="pin-compare">
-            <div class="pin-card pin-bad">
-              <div class="pin-code">synchronized (this)</div>
-              <div class="pin-track">
-                <span class="pin-carrier">carrier</span>
-                <span class="pin-vt pin-vt-stuck">VT</span>
-              </div>
-              <div class="pin-verdict pin-verdict-bad">pinned &mdash; carrier held while blocked</div>
-              <div class="pin-note">teardown cascade starved the pool</div>
-            </div>
-            <div class="pin-card pin-good">
-              <div class="pin-code">ReentrantLock</div>
-              <div class="pin-track">
-                <span class="pin-carrier">carrier</span>
-                <span class="pin-vt pin-vt-free">VT</span>
-              </div>
-              <div class="pin-verdict pin-verdict-good">unmounts cleanly &mdash; carrier freed</div>
-              <div class="pin-note">JFR: 0 pinning events at every tier</div>
-            </div>
-          </div>
+          <svg class="pin-svg" viewBox="0 0 500 260" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <!-- Lane A: synchronized -->
+            <text class="pin-lane-label" x="20" y="26">cell monitor &rarr; world lock</text>
+            <rect id="pin-rail-a" class="pin-rail pin-rail-bad" x="20" y="58" width="300" height="14" rx="7"/>
+            <text class="pin-rail-label" x="170" y="88">carrier thread</text>
+            <g id="pin-a0" class="pin-chip pin-chip-bad" transform="translate(40 52)">
+              <rect width="44" height="26" rx="8"/><text x="22" y="13">VT</text>
+            </g>
+            <g id="pin-a1" class="pin-chip pin-chip-dim" transform="translate(340 52)">
+              <rect width="44" height="26" rx="8"/><text x="22" y="13">VT</text>
+            </g>
+            <g id="pin-a2" class="pin-chip pin-chip-dim" transform="translate(392 52)">
+              <rect width="44" height="26" rx="8"/><text x="22" y="13">VT</text>
+            </g>
+            <text id="pin-verdict-a" class="pin-verdict pin-verdict-bad" x="20" y="112">pinned &mdash; blocked, but never unmounts</text>
+            <text class="pin-count" x="480" y="112">carriers free: <tspan id="pin-count-a" class="pin-count-bad">0</tspan></text>
+
+            <!-- Lane B: ReentrantLock -->
+            <text class="pin-lane-label" x="20" y="174">ReentrantLock</text>
+            <rect id="pin-rail-b" class="pin-rail" x="20" y="196" width="300" height="14" rx="7"/>
+            <text class="pin-rail-label" x="170" y="226">carrier thread</text>
+            <g id="pin-b0" class="pin-chip pin-chip-parked" transform="translate(40 128)">
+              <rect width="44" height="26" rx="8"/><text x="22" y="13">VT</text>
+            </g>
+            <g id="pin-b1" class="pin-chip pin-chip-parked" transform="translate(92 128)">
+              <rect width="44" height="26" rx="8"/><text x="22" y="13">VT</text>
+            </g>
+            <g id="pin-b2" class="pin-chip" transform="translate(40 190)">
+              <rect width="44" height="26" rx="8"/><text x="22" y="13">VT</text>
+            </g>
+            <text id="pin-verdict-b" class="pin-verdict pin-verdict-good" x="20" y="252">blocks &rarr; unmounts &rarr; next VT mounts</text>
+            <text class="pin-count" x="480" y="252">carriers free: <tspan id="pin-count-b" class="pin-count-good">all</tspan></text>
+          </svg>
         </div>
-        <h2 class="row-title">The deadlock that taught me Loom</h2>
+        <h2 class="row-title">The bug that needed a fleet</h2>
         <div class="row-text">
           <ul>
-            <li>A cell index took its own monitor, then blocked on the world read lock</li>
-            <li>A virtual thread blocking inside <em>synchronized</em> pins its carrier &mdash; it cannot unmount</li>
-            <li>Mass idle-timeout at fleet teardown starved every carrier and hung the server for two hours</li>
-            <li>Fixed by swapping the monitor for a ReentrantLock, then proven with JFR captures and a 44-run stress sweep pinned to two cores</li>
+            <li>A cell-index monitor nested under the world read lock: harmless under normal load</li>
+            <li>Stress-test teardown fired 2,000 idle-timeouts at once. Each VT pinned its carrier and the pool starved</li>
+            <li>VTs are built to block, but not while holding a monitor</li>
+            <li>Switched to ReentrantLock. JFR: 0 pinning events in 44 stress runs</li>
           </ul>
         </div>
       </div>
@@ -169,71 +192,45 @@
       <!-- Row 3: Backpressure — visual left, text right -->
       <div class="row">
         <div class="row-visual">
-          <svg class="flow-svg" viewBox="0 0 520 200" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <defs>
-              <filter id="stall-glow" x="-50%" y="-50%" width="200%" height="200%">
-                <feGaussianBlur stdDeviation="6"/>
-              </filter>
-            </defs>
-            <path class="flow-path" d="M 104 60 L 176 60"/>
-            <path class="flow-path" d="M 268 60 C 300 60, 300 60, 332 60"/>
-            <path class="flow-path flow-branch-ok"    d="M 380 84 C 380 120, 300 140, 244 140"/>
-            <path class="flow-path flow-branch-retry" d="M 420 84 C 440 110, 444 130, 444 148"/>
+          <svg class="bp-svg" viewBox="0 0 520 240" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <!-- tick source -->
+            <circle class="bp-tick" cx="50" cy="120" r="22"/>
+            <text class="bp-label" x="50" y="120">tick</text>
+            <path class="arch-line" d="M 72 120 L 150 120"/>
+            <rect id="bp-frame" class="bp-frame" x="66" y="114" width="12" height="12" rx="2" opacity="0"/>
 
-            <rect class="flow-node" x="16" y="36" width="88" height="48" rx="24"/>
-            <text class="flow-label" x="60" y="56">Active</text>
-            <text class="flow-sublabel" x="60" y="74">queue &lt; 128</text>
+            <!-- bounded queue -->
+            <rect class="bp-queue-outline" x="160" y="30" width="28" height="180" rx="6"/>
+            <rect id="bp-queue" class="bp-queue-fill" x="162" y="32" width="24" height="176" rx="5"/>
+            <text class="bp-sublabel" x="174" y="20">128</text>
+            <text class="bp-sublabel" x="174" y="226">queue</text>
 
-            <rect class="flow-fork-glow" x="176" y="36" width="92" height="48" rx="24"
-                  fill="rgba(0,204,204,0.2)" filter="url(#stall-glow)"/>
-            <rect class="flow-node flow-fork-node" x="176" y="36" width="92" height="48" rx="24"/>
-            <text class="flow-label" x="222" y="56">Stalled</text>
-            <text class="flow-sublabel" x="222" y="74">queue full</text>
+            <!-- client -->
+            <path class="arch-line" d="M 188 120 L 250 120"/>
+            <rect class="bp-client" x="250" y="98" width="80" height="44" rx="10"/>
+            <text class="bp-label" x="290" y="120">client</text>
+            <rect id="bp-badge" class="bp-badge bp-badge-stalled" x="244" y="46" width="92" height="26" rx="13"/>
+            <text id="bp-badge-text" class="bp-badge-text" x="290" y="59">stalled</text>
+            <text class="bp-sublabel" x="290" y="162">slow socket</text>
 
-            <rect class="flow-node" x="332" y="36" width="104" height="48" rx="24"/>
-            <text class="flow-label" x="384" y="56">Grace</text>
-            <text class="flow-sublabel" x="384" y="74">10 ticks</text>
-
-            <text class="flow-branch-label flow-branch-label-ok" x="180" y="146">reconnect &rarr; same entity</text>
-            <text class="flow-branch-label flow-branch-label-retry" x="430" y="168">expire &rarr; dropped</text>
+            <!-- entity on the grid -->
+            <g class="bp-grid" transform="translate(380 70)">
+              <rect x="0" y="0" width="100" height="100" rx="6"/>
+              <path d="M 20 0 V 100 M 40 0 V 100 M 60 0 V 100 M 80 0 V 100 M 0 20 H 100 M 0 40 H 100 M 0 60 H 100 M 0 80 H 100"/>
+              <rect id="bp-entity" class="bp-entity" x="41" y="41" width="18" height="18" rx="3" opacity="0.35"/>
+              <circle id="bp-ring" class="bp-ring" cx="50" cy="50" r="24"/>
+            </g>
+            <text id="bp-grace" class="bp-grace" x="430" y="196">grace: 10 ticks</text>
+            <circle id="bp-token" class="bp-token" cx="330" cy="120" r="5" opacity="0"/>
           </svg>
         </div>
-        <h2 class="row-title">Slow clients don't get to win</h2>
+        <h2 class="row-title">Slow sockets, second chances</h2>
         <div class="row-text">
           <ul>
-            <li>Each session drains a bounded 128-frame queue; overflow marks the session stalled rather than blocking the tick</li>
-            <li>The entity stays on the grid for a ten-tick grace window instead of dying instantly</li>
-            <li>A resume token lets the client reconnect and rebind to the <em>same</em> entity</li>
-            <li>Fire-once guards mean the transition happens at most once per attach, however noisy the socket</li>
-          </ul>
-        </div>
-      </div>
-
-      <!-- Row 4: Golden-trace testing — text left, visual right -->
-      <div class="row row--reverse">
-        <div class="row-visual">
-          <div class="trace-compare">
-            <div class="trace-side">
-              <div class="trace-label">before refactor</div>
-              <div class="trace-hash">a3f9<span class="trace-dim">c1&hellip;7e02</span></div>
-              <div class="trace-sub">O(W&times;H) scan</div>
-            </div>
-            <div class="trace-match">&equals;</div>
-            <div class="trace-side">
-              <div class="trace-label">after refactor</div>
-              <div class="trace-hash">a3f9<span class="trace-dim">c1&hellip;7e02</span></div>
-              <div class="trace-sub">O(live) sparse set</div>
-            </div>
-            <div class="trace-footer">SHA&#8209;256 of every outbound frame byte, per session</div>
-          </div>
-        </div>
-        <h2 class="row-title">Proving a rewrite changed nothing</h2>
-        <div class="row-text">
-          <ul>
-            <li>Replacing full-grid scans with sparse-set iteration had to be provably behaviour-neutral</li>
-            <li>A digest of every byte sent to every session is captured before and after</li>
-            <li>The rewrite is only accepted if all per-session digests are byte-identical</li>
-            <li>A vacuous-baseline guard asserts no digest matches the hash of empty input</li>
+            <li>Every session drains a bounded 128-frame queue. Overflow stalls a session, not the tick</li>
+            <li>A stalled entity lives on for a ten-tick grace window</li>
+            <li>A resume token rebinds a reconnecting client to the <em>same</em> entity</li>
+            <li>Fire-once guards: one transition per attach, however noisy the socket</li>
           </ul>
         </div>
       </div>
@@ -241,10 +238,9 @@
     </div>
 
     <footer class="tech-footer">
-      Sole developer <span>&middot;</span> 20k lines Java <span>&middot;</span> 32k lines of tests <span>&middot;</span>
-      1,156 JUnit tests <span>&middot;</span> Java 21 <span>&middot;</span> Spring Boot 3.4 <span>&middot;</span>
-      Jetty 12 <span>&middot;</span> Virtual threads <span>&middot;</span> Raw WebSocket <span>&middot;</span>
-      Micrometer <span>&middot;</span> JFR <span>&middot;</span> Gradle
+      Sole developer <span>&middot;</span> 1,156 JUnit tests <span>&middot;</span> Java 21 <span>&middot;</span>
+      Spring Boot 3.4 <span>&middot;</span> Jetty 12 <span>&middot;</span> Virtual threads <span>&middot;</span>
+      Raw WebSocket <span>&middot;</span> Micrometer <span>&middot;</span> JFR <span>&middot;</span> Gradle
     </footer>
   </div>
 
