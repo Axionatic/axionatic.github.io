@@ -115,6 +115,8 @@
     width: min(500px, 92vw);
     bottom: 84px;
     padding: 10px 12px;
+    min-height: calc(4.2em + 20px);
+    height: calc(4.2em + 20px);
     overflow: hidden;
   }
 }

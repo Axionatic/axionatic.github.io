@@ -881,8 +881,11 @@ function advanceIPadCount() {
 }
 
 function updateDashboard() {
-  const dashStart = W < 600 ? 0.70 : DASH_MORPH_START;
-  const dashAlpha = clamp((morphProgress - dashStart) / (DASH_MORPH_END - dashStart), 0, 1) * techFade;
+  // Phones give the final narrative line an uninterrupted reading interval.
+  // The denser dashboard enters only after that line has left the stage.
+  const dashStart = W < 600 ? 0.94 : DASH_MORPH_START;
+  const dashEnd = W < 600 ? 0.99 : DASH_MORPH_END;
+  const dashAlpha = clamp((morphProgress - dashStart) / (dashEnd - dashStart), 0, 1) * techFade;
   dashboardEl.style.opacity = dashAlpha;
   dashboardEl.style.pointerEvents = dashAlpha > 0.5 ? 'auto' : 'none';
   if (dashAlpha <= 0) return;

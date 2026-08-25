@@ -39,7 +39,7 @@
     <div class="narrative-line">A custom front-end changes that — but only if it stays in sync.</div>
     <div class="narrative-line">Guestflow keeps it live: real pricing, real calendars, direct bookings.</div>
     <div class="narrative-line">A booking is confirmed only once the card has actually paid.</div>
-    <div class="narrative-line">One codebase. One Worker per client. Nothing shared.</div>
+    <div class="narrative-line">One codebase. One Worker per host. Nothing shared.</div>
   </div>
   <div id="pipeline" style="display:none">
     <div class="pipeline-header">System components</div>
@@ -134,25 +134,25 @@
         </div>
       </div>
 
-      <!-- Row 3: One Worker per client — visual left, text right -->
+      <!-- Row 3: One Worker per host — visual left, text right -->
       <div class="row">
         <div class="row-visual">
           <div class="fleet-wrap">
             <div class="fleet-source">one source repo</div>
             <div class="fleet-arrow">&darr; CI publishes a filtered snapshot</div>
             <div class="fleet-grid">
-              <div class="fleet-client">
-                <div class="fleet-name">client a</div>
+              <div class="fleet-host">
+                <div class="fleet-name">host a</div>
                 <div class="fleet-sub">own Worker</div>
                 <div class="fleet-sha">sha 4f2a1c</div>
               </div>
-              <div class="fleet-client">
-                <div class="fleet-name">client b</div>
+              <div class="fleet-host">
+                <div class="fleet-name">host b</div>
                 <div class="fleet-sub">own Worker</div>
                 <div class="fleet-sha">sha 4f2a1c</div>
               </div>
-              <div class="fleet-client fleet-drift">
-                <div class="fleet-name">client c</div>
+              <div class="fleet-host fleet-drift">
+                <div class="fleet-name">host c</div>
                 <div class="fleet-sub">own Worker</div>
                 <div class="fleet-sha">sha 9b07e3</div>
               </div>
@@ -160,13 +160,13 @@
             <div class="fleet-alert">a nightly check flags the one left behind</div>
           </div>
         </div>
-        <h2 class="row-title">One Worker per client</h2>
+        <h2 class="row-title">One Worker per host</h2>
         <div class="row-text">
           <ul>
-            <li>Every client gets its own Worker, its own secrets, its own cache</li>
+            <li>Every host gets its own Worker, its own secrets, its own cache</li>
             <li>Isolation is structural, not a WHERE clause someone can forget</li>
-            <li>CI ships an allow-listed snapshot, so admin code can't reach a client</li>
-            <li>A build test fails if admin code leaks into the client package</li>
+            <li>CI ships an allow-listed snapshot, so admin code can't reach a host</li>
+            <li>A build test fails if admin code leaks into the host package</li>
           </ul>
         </div>
       </div>

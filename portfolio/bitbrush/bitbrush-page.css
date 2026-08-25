@@ -199,11 +199,12 @@
     display: block;
   }
   #demo-panel {
-    top: auto;
-    bottom: 3%;
+    top: max(88px, calc(env(safe-area-inset-top, 0px) + 88px));
+    bottom: max(8px, env(safe-area-inset-bottom, 0px));
     transform: translateX(-50%);
     width: min(420px, 92vw);
-    max-height: calc(100vh - 220px);
+    height: auto;
+    max-height: none;
     overflow-y: auto;
   }
 }

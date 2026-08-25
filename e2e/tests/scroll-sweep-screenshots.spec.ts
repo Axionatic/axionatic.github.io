@@ -68,11 +68,13 @@ for (const { name, path } of PORTFOLIO_PAGES) {
       }
     }
 
-    // Panels should be visible at progress 0.8 (for pages that have them)
-    await scrollToProgress(page, 0.8);
+    // Oasis phones deliberately reserve the final fifth of the runway for its
+    // last narrative line; other panels retain the established 0.8 checkpoint.
+    const lateProgress = name === 'oasis' && page.viewportSize()!.width <= 600 ? 0.96 : 0.8;
+    await scrollToProgress(page, lateProgress);
     for (const sel of panels) {
       if (!(await isElementVisible(page, sel))) {
-        violations.push(`${name}: ${sel} should be visible at progress=0.8`);
+        violations.push(`${name}: ${sel} should be visible at progress=${lateProgress}`);
       }
     }
 

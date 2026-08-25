@@ -848,6 +848,13 @@ function drawMatrix(dt, fade) {
     my = H * 0.56;
   }
 
+  if (W <= MOBILE_BREAKPOINT) {
+    const contentTop = 96;
+    const contentBottom = H - 20;
+    mx = (W - totalW) / 2;
+    my = contentTop + Math.max(0, (contentBottom - contentTop - totalH) / 2);
+  }
+
   const gridLeft = mx + labelSz;
   const gridTop = my + titleH + labelSz;
 
@@ -1093,21 +1100,30 @@ function render(timestamp) {
   ctx.fillRect(0, 0, W, H);
 
   // ILP Matrix alpha (used for box offset on mobile)
-  const matrixAlpha = clamp01((t - MATRIX_MORPH_START) / MATRIX_FADE_RANGE) * techFade;
+  const matrixStart = W <= MOBILE_BREAKPOINT ? 0.94 : MATRIX_MORPH_START;
+  const matrixFadeRange = W <= MOBILE_BREAKPOINT ? 0.05 : MATRIX_FADE_RANGE;
+  const matrixAlpha = clamp01((t - matrixStart) / matrixFadeRange) * techFade;
 
   // On mobile, shift box animation up when matrix appears
   boxYOffset = W <= MOBILE_BREAKPOINT ? matrixAlpha * H * 0.18 : 0;
 
   // Box animations
-  if (badFade > 0) drawBoxAnimation(dt, badFade * techFade);
-  if (goodFade > 0) drawGoodBoxAnimation(dt, goodFade * techFade);
+  const boxSceneAlpha = W <= MOBILE_BREAKPOINT ? 1 - matrixAlpha : 1;
+  if (badFade > 0) drawBoxAnimation(dt, badFade * techFade * boxSceneAlpha);
+  if (goodFade > 0) drawGoodBoxAnimation(dt, goodFade * techFade * boxSceneAlpha);
 
   // ILP Matrix (canvas-drawn)
   if (matrixAlpha > 0) drawMatrix(dt, matrixAlpha);
 
   // Narrative lines (horizontal slide, vertically centred)
-  // On mobile, fade narrative when matrix appears
-  const narrativeMatrixFade = W <= MOBILE_BREAKPOINT ? 1 - matrixAlpha : 1;
+  // On phones, the final line gets a stable interval before yielding to the
+  // solver. Larger layouts can continue showing copy alongside the matrix.
+  const narrativeMatrixFade = W <= MOBILE_BREAKPOINT
+    ? 1 - clamp01((t - 0.90) / 0.04)
+    : 1;
+  if (W <= MOBILE_BREAKPOINT) {
+    narrativeEl.style.opacity = narrativeMatrixFade;
+  }
   for (let i = 0; i < narrativeLines.length; i++) {
     const kf = interpolateKeyframes(LINE_KEYFRAMES[i], t);
     narrativeLines[i].style.opacity = kf.op * narrativeMatrixFade;

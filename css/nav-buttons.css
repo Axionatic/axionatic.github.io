@@ -41,3 +41,30 @@
     -webkit-backdrop-filter: none;
   }
 }
+
+/* Portfolio detail pages turn the two-button pill into the navigation half of
+   a compact app bar on phones. Single-link gallery/sketch buttons keep the
+   original floating-square treatment. */
+@media (max-width: 600px) {
+  .nav-btn--pill {
+    top: max(8px, env(safe-area-inset-top, 0px));
+    left: 8px;
+    flex-direction: row;
+    width: 88px;
+    height: 72px;
+    border-radius: 10px 0 0 10px;
+    background: rgba(0, 0, 0, 0.9);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+  }
+
+  .nav-btn--pill .nav-btn__link {
+    flex: 0 0 44px;
+    min-height: 72px;
+  }
+
+  .nav-btn--pill .nav-btn__link:first-child {
+    border-right: 1px solid var(--accent, #0cc);
+    border-bottom: 0;
+  }
+}

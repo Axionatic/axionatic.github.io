@@ -205,6 +205,10 @@ a:hover {
 
   .bitbrush-widget-content {
     padding: 16px 12px;
+    justify-content: flex-start;
+  }
+  .bitbrush-widget-tagline {
+    display: none;
   }
   .nav-marker {
     width: 64px;
