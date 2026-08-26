@@ -107,6 +107,7 @@
   }
   #title-overlay {
     font-size: clamp(18px, 6vw, 28px);
+    white-space: normal;
   }
   .narrative-line {
     font-size: clamp(16px, 4.5vw, 22px);

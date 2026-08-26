@@ -53,9 +53,15 @@ for (const { name, path } of PORTFOLIO_PAGES) {
     await navigateToPortfolioPage(page, path);
 
     const navigation = page.getByRole('navigation', { name: 'Navigation' });
+    if ((page.viewportSize()?.width ?? Number.POSITIVE_INFINITY) <= 600) {
+      const menuButton = navigation.getByRole('button', { name: 'Navigation menu' });
+      await expect(menuButton).toBeVisible();
+      await menuButton.click();
+    }
+
     await expect(navigation.getByRole('link')).toHaveCount(2);
 
-    for (const linkName of ['Home', 'Back']) {
+    for (const linkName of ['Home', 'Portfolio']) {
       const link = navigation.getByRole('link', { name: linkName, exact: true });
       await expect(link).toBeVisible();
 

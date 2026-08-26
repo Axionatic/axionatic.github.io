@@ -199,13 +199,14 @@
     display: block;
   }
   #demo-panel {
-    top: max(88px, calc(env(safe-area-inset-top, 0px) + 88px));
+    top: max(171px, calc(env(safe-area-inset-top, 0px) + 171px));
     bottom: max(8px, env(safe-area-inset-bottom, 0px));
     transform: translateX(-50%);
     width: min(420px, 92vw);
     height: auto;
     max-height: none;
     overflow-y: auto;
+    padding: 3px;
   }
 }
 @media (hover: none) {

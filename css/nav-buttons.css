@@ -28,10 +28,45 @@
 .nav-btn__link:visited { color: var(--accent, #0cc); }
 .nav-btn__link:hover { color: #fff; background-color: rgba(255, 255, 255, 0.08); }
 
-.nav-btn__icon { width: 20px; height: 20px; flex-shrink: 0; }
+.nav-btn__icon {
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2.5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.nav-btn__menu {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+}
+
+.nav-btn__toggle { display: none; }
+
+.nav-btn__label {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
 
 .nav-btn--pill .nav-btn__link:first-child {
   border-bottom: 1px solid var(--accent, #0cc);
+}
+
+.nav-btn__link:focus-visible,
+.nav-btn__toggle:focus-visible {
+  outline: 2px solid #fff;
+  outline-offset: -3px;
 }
 
 @media (hover: none) {
@@ -42,11 +77,10 @@
   }
 }
 
-/* Portfolio detail pages turn the two-button pill into the navigation half of
-   a compact app bar on phones. Single-link gallery/sketch buttons keep the
-   original floating-square treatment. */
+/* Portfolio detail pages collapse their two destinations into a disclosure
+   menu on phones. Gallery and sketch navigation keep their original shape. */
 @media (max-width: 600px) {
-  .nav-btn--pill {
+  .nav-btn--pill:not(.nav-btn--portfolio) {
     top: max(8px, env(safe-area-inset-top, 0px));
     left: 8px;
     flex-direction: row;
@@ -58,13 +92,72 @@
     -webkit-backdrop-filter: blur(10px);
   }
 
-  .nav-btn--pill .nav-btn__link {
+  .nav-btn--pill:not(.nav-btn--portfolio) .nav-btn__link {
     flex: 0 0 44px;
     min-height: 72px;
   }
 
-  .nav-btn--pill .nav-btn__link:first-child {
+  .nav-btn--pill:not(.nav-btn--portfolio) .nav-btn__link:first-child {
     border-right: 1px solid var(--accent, #0cc);
     border-bottom: 0;
+  }
+
+  .nav-btn--portfolio.is-ready {
+    width: 44px;
+    overflow: visible;
+    background: none;
+    border: 0;
+    border-radius: 0;
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+  }
+
+  .nav-btn--portfolio.is-ready .nav-btn__toggle {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 44px;
+    height: 44px;
+    padding: 0;
+    color: var(--accent, #0cc);
+    background: rgba(0, 0, 0, 0.9);
+    border: 1px solid var(--accent, #0cc);
+    border-radius: 8px;
+    cursor: pointer;
+  }
+
+  .nav-btn--portfolio.is-ready .nav-btn__menu {
+    display: none;
+    position: absolute;
+    top: 52px;
+    left: 0;
+    width: 156px;
+    overflow: hidden;
+    background: rgba(0, 0, 0, 0.94);
+    border: 1px solid var(--accent, #0cc);
+    border-radius: 8px;
+  }
+
+  .nav-btn--portfolio.is-ready.is-open .nav-btn__menu { display: flex; }
+
+  .nav-btn--portfolio.is-ready .nav-btn__link {
+    justify-content: flex-start;
+    gap: 10px;
+    width: 100%;
+    padding: 0 12px;
+  }
+
+  .nav-btn--portfolio.is-ready .nav-btn__label {
+    position: static;
+    width: auto;
+    height: auto;
+    margin: 0;
+    overflow: visible;
+    clip: auto;
+  }
+
+  .nav-btn--portfolio.is-ready .nav-btn__link:first-child {
+    border-right: 0;
+    border-bottom: 1px solid var(--accent, #0cc);
   }
 }
