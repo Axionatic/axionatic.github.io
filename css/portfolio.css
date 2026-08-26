@@ -41,6 +41,7 @@ h1, h2 {
 /* -- Nav button override (safe-area + z-index) ------------------------- */
 .nav-btn {
   top: max(16px, env(safe-area-inset-top, 0px));
+  left: max(16px, env(safe-area-inset-left, 0px));
   z-index: 100;
 }
 
@@ -359,44 +360,13 @@ h1, h2 {
 /* -- Responsive: small header ------------------------------------------ */
 @media (max-width: 600px) {
   html body #header-panel {
-    position: fixed !important;
-    top: max(8px, env(safe-area-inset-top, 0px)) !important;
-    left: 96px !important;
-    right: 8px !important;
-    width: auto !important;
-    height: 72px;
-    max-width: none !important;
-    padding: 8px 12px !important;
-    transform: none !important;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    overflow: hidden;
-    border: 1px solid var(--accent);
-    border-left-color: rgba(var(--accent-rgb), 0.35);
-    border-radius: 0 10px 10px 0;
-    background: rgba(0, 0, 0, 0.9);
-    backdrop-filter: blur(10px);
-    -webkit-backdrop-filter: blur(10px);
-  }
-
-  #header-panel #title-overlay {
-    max-width: 100%;
-    max-height: 42px;
-  }
-
-  #header-panel #subtitle,
-  #header-panel #mobile-tagline,
-  #header-panel #tech-subtitle {
-    max-width: 100%;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-  }
-
-  #tech-content {
-    padding-top: 88px !important;
+    padding: 16px 20px 12px;
+    left: max(72px, calc(env(safe-area-inset-left, 0px) + 72px));
+    right: max(8px, env(safe-area-inset-right, 0px));
+    width: auto;
+    max-width: none;
+    top: 4%;
+    transform: none;
   }
 }
 

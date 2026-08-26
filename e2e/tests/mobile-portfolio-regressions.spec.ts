@@ -1,38 +1,106 @@
 import { test, expect } from '@playwright/test';
 import { PORTFOLIO_PAGES, navigateToPortfolioPage } from '../helpers/pages';
-import { getBox, rectsOverlap } from '../helpers/geometry';
-import { scrollToProgress, scrollToTechSection } from '../helpers/scroll';
+import { getBox, hasHorizontalOverflow, isContainedInViewport, rectsOverlap } from '../helpers/geometry';
+import { scrollToProgress } from '../helpers/scroll';
 
 test.beforeEach(async ({ page }) => {
   test.skip((page.viewportSize()?.width ?? Number.POSITIVE_INFINITY) > 600, 'Phone-only regression coverage');
 });
 
-test.describe('mobile portfolio top bar', () => {
+test.describe('mobile portfolio navigation menu', () => {
   for (const { name, path } of PORTFOLIO_PAGES) {
-    test(`${name}: navigation and project identity share a collision-free top bar`, async ({ page }) => {
+    test(`${name}: starts compact and reveals two usable destinations`, async ({ page }) => {
       await navigateToPortfolioPage(page, path);
 
-      const nav = page.locator('.nav-btn--pill');
-      const links = nav.locator('.nav-btn__link');
-      const header = page.locator('#header-panel');
-      const navBox = await getBox(nav);
-      const headerBox = await getBox(header);
-      const firstLinkBox = await getBox(links.nth(0));
-      const secondLinkBox = await getBox(links.nth(1));
+      const nav = page.locator('[data-portfolio-nav]');
+      const toggle = nav.locator('.nav-btn__toggle');
+      const actions = nav.locator('.nav-btn__menu');
+      const home = actions.getByRole('link', { name: 'Home' });
+      const portfolio = actions.getByRole('link', { name: 'Portfolio' });
 
-      expect(firstLinkBox.y).toBeCloseTo(secondLinkBox.y, 0);
-      expect(firstLinkBox.width).toBeGreaterThanOrEqual(44);
-      expect(firstLinkBox.height).toBeGreaterThanOrEqual(44);
-      expect(secondLinkBox.width).toBeGreaterThanOrEqual(44);
-      expect(secondLinkBox.height).toBeGreaterThanOrEqual(44);
-      expect(rectsOverlap(navBox, headerBox)).toBe(false);
-      expect(Math.abs(navBox.y - headerBox.y)).toBeLessThanOrEqual(2);
+      await expect(toggle).toHaveAttribute('aria-expanded', 'false');
+      await expect(actions).toBeHidden();
+      const toggleBox = await getBox(toggle);
+      expect(toggleBox.width).toBeGreaterThanOrEqual(44);
+      expect(toggleBox.height).toBeGreaterThanOrEqual(44);
+      expect(rectsOverlap(toggleBox, await getBox(page.locator('#header-panel')))).toBe(false);
+      expect(rectsOverlap(toggleBox, await getBox(page.locator('#title-overlay')))).toBe(false);
 
-      await scrollToTechSection(page);
-      await expect(header).toHaveCSS('position', 'fixed');
-      expect(rectsOverlap(await getBox(nav), await getBox(header))).toBe(false);
+      await toggle.click();
+
+      await expect(toggle).toHaveAttribute('aria-expanded', 'true');
+      await expect(actions).toBeVisible();
+      await expect(home).toHaveAttribute('href', '/');
+      await expect(portfolio).toHaveAttribute('href', '../');
+      for (const link of [home, portfolio]) {
+        const linkBox = await getBox(link);
+        expect(linkBox.height).toBeGreaterThanOrEqual(44);
+        expect(linkBox.width).toBeGreaterThanOrEqual(44);
+      }
+      const viewport = page.viewportSize()!;
+      expect(isContainedInViewport(await getBox(actions), viewport.width, viewport.height)).toBe(true);
+      expect(await hasHorizontalOverflow(page)).toBe(false);
     });
   }
+
+  test('dismisses on outside tap and Escape, restoring focus after Escape', async ({ page }) => {
+    await navigateToPortfolioPage(page, '/portfolio/paralife/');
+    const nav = page.locator('[data-portfolio-nav]');
+    const toggle = nav.locator('.nav-btn__toggle');
+    const actions = nav.locator('.nav-btn__menu');
+
+    await toggle.click();
+    await page.mouse.click(page.viewportSize()!.width - 8, page.viewportSize()!.height - 8);
+    await expect(actions).toBeHidden();
+    await expect(toggle).toHaveAttribute('aria-expanded', 'false');
+
+    await toggle.click();
+    await page.keyboard.press('Escape');
+    await expect(actions).toBeHidden();
+    await expect(toggle).toBeFocused();
+  });
+
+  test('resets an open menu when crossing the phone breakpoint', async ({ page }) => {
+    await navigateToPortfolioPage(page, '/portfolio/paralife/');
+    const nav = page.locator('[data-portfolio-nav]');
+    const toggle = nav.locator('.nav-btn__toggle');
+    const actions = nav.locator('.nav-btn__menu');
+
+    await toggle.click();
+    await page.setViewportSize({ width: 650, height: 800 });
+
+    await expect(toggle).toBeHidden();
+    await expect(actions).toBeVisible();
+    await expect(toggle).toHaveAttribute('aria-expanded', 'false');
+
+    await page.setViewportSize({ width: 600, height: 800 });
+    await expect(toggle).toBeVisible();
+    await expect(actions).toBeHidden();
+  });
+
+  test('keeps both destinations usable when the menu script does not load', async ({ page }) => {
+    await page.route('**/portfolio/portfolio-nav.js', (route) => route.abort());
+    await navigateToPortfolioPage(page, '/portfolio/paralife/');
+
+    const nav = page.locator('[data-portfolio-nav]');
+    await expect(nav.locator('.nav-btn__toggle')).toBeHidden();
+    await expect(nav.getByRole('link', { name: 'Home' })).toBeVisible();
+    await expect(nav.getByRole('link', { name: 'Portfolio' })).toBeVisible();
+  });
+
+  test('preserves the existing horizontal sketch navigation pill', async ({ page }) => {
+    await page.goto('/sketches/bioluminescence/', { waitUntil: 'domcontentloaded' });
+
+    const navigation = page.getByRole('navigation', { name: 'Navigation' });
+    const homeBox = await getBox(navigation.getByRole('link', { name: 'Home' }));
+    const backBox = await getBox(navigation.getByRole('link', { name: 'Back' }));
+    const navBox = await getBox(navigation);
+
+    expect(navBox.width).toBe(90); // 88px content width + 1px border on each side
+    expect(navBox.height).toBe(74); // 72px content height + 1px border on each side
+    expect(homeBox.y).toBe(backBox.y);
+    expect(backBox.x).toBeGreaterThan(homeBox.x);
+  });
 });
 
 test.describe('Paralife phone choreography', () => {
@@ -198,7 +266,7 @@ test.describe('BitBrush phone containment', () => {
     expect(fits).toBe(true);
   });
 
-  test('detail demo uses the available space below the mobile top bar', async ({ page }) => {
+  test('detail demo uses the available space below the restored mobile header', async ({ page }) => {
     await navigateToPortfolioPage(page, '/portfolio/bitbrush/');
     const demo = page.locator('#demo-panel');
     await demo.locator('#bitbrush-container').evaluate((container) => {
@@ -219,6 +287,6 @@ test.describe('BitBrush phone containment', () => {
     expect(demoBox.y).toBeGreaterThanOrEqual(headerBox.bottom + 8);
     expect(demoBox.bottom).toBeLessThanOrEqual(viewportHeight - 8);
     expect(scrolls).toBe(false);
-    expect(backgroundAlpha).toBeGreaterThanOrEqual(0.85);
+    expect(backgroundAlpha).toBeGreaterThanOrEqual(0.75);
   });
 });

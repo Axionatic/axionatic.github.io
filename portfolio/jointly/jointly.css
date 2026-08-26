@@ -205,7 +205,7 @@
   }
   #narrative {
     font-size: clamp(18px, 4.5vw, 24px);
-    height: 8em;
+    height: 10em;
     margin-top: 16px;
   }
   .narrative-line {
