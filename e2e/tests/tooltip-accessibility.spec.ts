@@ -18,7 +18,9 @@ const PAGES_WITH_TOOLTIPS: { name: string; path: string; barSelector: string }[]
 ];
 
 for (const { name, path, barSelector } of PAGES_WITH_TOOLTIPS) {
-  test(`${name}: tooltip appears on touch tap`, async ({ page }) => {
+  test(`${name}: tooltip appears on touch tap`, async ({ page }, testInfo) => {
+    test.skip(!testInfo.project.use.hasTouch, 'touch-capable profiles only');
+
     await navigateToPortfolioPage(page, path);
     // Scroll to ~0.8 progress to reveal ranking bars
     await scrollToProgress(page, 0.8);

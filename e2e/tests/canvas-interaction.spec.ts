@@ -38,7 +38,9 @@ test('bitbrush: mini-canvas dimensions >= 200px', async ({ page }) => {
   ).toBeGreaterThanOrEqual(MIN_CANVAS_SIZE);
 });
 
-test('bitbrush: mini-canvas responds to touch', async ({ page }) => {
+test('bitbrush: mini-canvas responds to touch', async ({ page }, testInfo) => {
+  test.skip(!testInfo.project.use.hasTouch, 'touch-capable profiles only');
+
   await navigateToPortfolioPage(page, BITBRUSH_PATH);
   await scrollToProgress(page, 0.8);
 

@@ -122,10 +122,15 @@
   function create(root) {
     const SVG_NS = 'http://www.w3.org/2000/svg';
     const glyphApi = window.ParalifeGlyphWorld;
-    const primaryGlyphs = [
+    const clientGlyphs = [
       glyphApi.glyphFor('catalyst'),
       glyphApi.glyphFor('membrane'),
       glyphApi.glyphFor('spore'),
+    ];
+    const perceptionGlyphs = [
+      ...clientGlyphs,
+      glyphApi.glyphFor('bondedPair'),
+      glyphApi.glyphFor('composite', { role: 'attacker', species: 'catalyst' }),
     ];
     const svg = document.getElementById('opening-visuals');
     const frame = document.getElementById('morph-frame');
@@ -150,12 +155,12 @@
     const reduced = window.matchMedia('(prefers-reduced-motion: reduce)');
     // Sibling vision windows (windows[1..]). windows[0] is drawn by the
     // persistent #morph-frame / #observed-entity pair so it can morph on.
-    const extraWindows = Array.from({ length: 3 }, (_, index) => {
+    const extraWindows = Array.from({ length: 4 }, (_, index) => {
       const rect = document.createElementNS(SVG_NS, 'rect');
       rect.classList.add('vision-frame');
       const dot = document.createElementNS(SVG_NS, 'text');
       dot.classList.add('vision-glyph');
-      const descriptor = primaryGlyphs[(index + 1) % primaryGlyphs.length];
+      const descriptor = perceptionGlyphs[index + 1];
       dot.textContent = descriptor.glyph;
       dot.style.fill = descriptor.color;
       const label = document.createElementNS(SVG_NS, 'text');
@@ -179,7 +184,7 @@
       group.classList.add('network-client');
       group.dataset.clientId = id;
       group.dataset.identityMarker = id;
-      const identity = primaryGlyphs[index % primaryGlyphs.length];
+      const identity = clientGlyphs[index % clientGlyphs.length];
       group.style.setProperty('--client-color', identity.color);
       const ring = document.createElementNS(SVG_NS, 'circle');
       ring.classList.add('client-identity-ring');
@@ -369,8 +374,8 @@
       frame.dataset.role = networkMorph > 0.98 ? 'server' : 'frame';
       frame.dataset.state = 'healthy';
       const primaryEntity = windows[0].entity;
-      observed.textContent = primaryGlyphs[0].glyph;
-      observed.style.fill = primaryGlyphs[0].color;
+      observed.textContent = perceptionGlyphs[0].glyph;
+      observed.style.fill = perceptionGlyphs[0].color;
       observed.setAttribute('x', primaryEntity.x.toFixed(2));
       observed.setAttribute('y', primaryEntity.y.toFixed(2));
       perceptionLabel.setAttribute('x', (windows[0].rect.x + windows[0].rect.width / 2).toFixed(2));

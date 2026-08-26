@@ -6,15 +6,19 @@ import {
 } from '../helpers/pages';
 import { scrollToProgress } from '../helpers/scroll';
 import { isElementVisible } from '../helpers/geometry';
+import {
+  prepareDeterministicVisualPage,
+  scrollToDeterministicProgress,
+  VISUAL_POSITIONS,
+  VISUAL_PROJECTS,
+} from '../helpers/visual';
 
 /**
  * Visual regression baselines + panel visibility timing checks.
  *
- * Takes screenshots at 3 key scroll positions (0.0, 0.5, 1.0) per page.
+ * Takes deterministic screenshots at representative scroll positions and profiles.
  * Also verifies panel show/hide timing at key morph progress points.
  */
-
-const SCREENSHOT_POSITIONS = [0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0] as const;
 
 /** Panels that should be hidden early and visible late in the scroll. */
 const PAGE_PANELS: Record<PortfolioPageName, string[]> = {
@@ -29,13 +33,14 @@ const PAGE_PANELS: Record<PortfolioPageName, string[]> = {
 for (const { name, path } of PORTFOLIO_PAGES) {
   test(`${name}: visual regression at key scroll positions`, async ({ page }, testInfo) => {
     test.setTimeout(60_000);
-    await navigateToPortfolioPage(page, path);
+    test.skip(!VISUAL_PROJECTS.includes(testInfo.project.name), 'representative visual profiles only');
+    await prepareDeterministicVisualPage(page, path);
 
-    for (const progress of SCREENSHOT_POSITIONS) {
-      await scrollToProgress(page, progress);
-      await expect(page).toHaveScreenshot(
-        `${name}-progress-${progress}-${testInfo.project.name}.png`,
-        { maxDiffPixelRatio: 0.02 },
+    for (const progress of VISUAL_POSITIONS) {
+      await scrollToDeterministicProgress(page, progress);
+      await expect.soft(page).toHaveScreenshot(
+        `${name}-progress-${progress}.png`,
+        { animations: 'disabled', maxDiffPixelRatio: 0.02 },
       );
     }
   });

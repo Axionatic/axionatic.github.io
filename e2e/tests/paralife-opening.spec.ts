@@ -110,11 +110,11 @@ test('packet motion keeps its autonomous clock at a fixed scroll position', asyn
   const healthyPacket = page.locator('.wire-packet').nth(4);
   await expect.poll(async () => Number(await healthyPacket.evaluate((packet) => getComputedStyle(packet).opacity))).toBe(1);
   const before = await healthyPacket.evaluate((packet) => `${packet.getAttribute('cx')},${packet.getAttribute('cy')}`);
-  await expect.poll(async () => healthyPacket.evaluate((packet) =>
+  await expect.poll(async () => healthyPacket.evaluate((packet, initialPosition) =>
     getComputedStyle(packet).opacity === '1'
       ? `${packet.getAttribute('cx')},${packet.getAttribute('cy')}`
-      : before
-  )).not.toBe(before);
+      : initialPosition,
+  before)).not.toBe(before);
   await expect(page.locator('#opening-story')).toHaveAttribute('data-client-phase', 'stalled');
 });
 
@@ -197,14 +197,106 @@ test('responsive narrative geometry clears chrome and stays inside its visual fr
   expect(Math.abs(perceptionFrame!.width - windowPx)).toBeLessThanOrEqual(2);
   expect(Math.abs(perceptionFrame!.height - windowPx)).toBeLessThanOrEqual(2);
 
-  // As many windows as fit the viewport: 1 on mobile, several on desktop.
-  const windowCount = Number(await page.locator('#opening-story').getAttribute('data-vision-windows'));
-  if (viewportWidth > 800) {
-    expect(windowCount).toBeGreaterThanOrEqual(2);
-  } else {
-    expect(windowCount).toBe(1);
+  const perceptionGeometry = await page.evaluate(() => {
+    const box = (element: Element) => {
+      const rect = element.getBoundingClientRect();
+      return {
+        x: rect.x,
+        y: rect.y,
+        width: rect.width,
+        height: rect.height,
+        right: rect.right,
+        bottom: rect.bottom,
+      };
+    };
+    const root = document.getElementById('opening-story')!;
+    const frames = [
+      document.getElementById('morph-frame')!,
+      ...Array.from(document.querySelectorAll('.vision-frame')).filter((frame) =>
+        getComputedStyle(frame).display !== 'none'),
+    ].map(box);
+    const glyphs = [
+      document.getElementById('observed-entity')!,
+      ...Array.from(document.querySelectorAll('.vision-glyph')).filter((glyph) =>
+        getComputedStyle(glyph).display !== 'none'),
+    ].map((glyph) => glyph.textContent);
+    const headerBox = box(document.getElementById('header-panel')!);
+    const copyBox = box(document.querySelector('.opening-line[data-beat="perception"]')!);
+    const rem = Number.parseFloat(getComputedStyle(document.documentElement).fontSize);
+    return {
+      ratio: Number(root.dataset.visionAreaRatio),
+      count: Number(root.dataset.visionWindows),
+      frames,
+      glyphs,
+      rem,
+      band: {
+        x: rem,
+        y: headerBox.bottom + rem,
+        width: document.documentElement.clientWidth - rem * 2,
+        height: copyBox.y - rem - (headerBox.bottom + rem),
+      },
+    };
+  });
+
+  expect(Number.isFinite(perceptionGeometry.ratio)).toBe(true);
+  expect(perceptionGeometry.ratio).toBeCloseTo(0.40);
+  expect(perceptionGeometry.count).toBeGreaterThanOrEqual(1);
+  expect(perceptionGeometry.count).toBeLessThanOrEqual(5);
+  expect(perceptionGeometry.frames).toHaveLength(perceptionGeometry.count);
+  expect(perceptionGeometry.glyphs).toEqual(
+    ['◬', '⊡', '⊙', '✶', '⨳'].slice(0, perceptionGeometry.count),
+  );
+
+  const frameArea = windowPx * windowPx;
+  const bandArea = perceptionGeometry.band.width * perceptionGeometry.band.height;
+  expect(perceptionGeometry.count * frameArea).toBeLessThanOrEqual(
+    bandArea * perceptionGeometry.ratio + 2,
+  );
+
+  // Independently derive the largest count whose area and grid cells fit.
+  let expectedCount = Math.max(
+    1,
+    Math.min(5, Math.floor((bandArea * perceptionGeometry.ratio) / frameArea)),
+  );
+  while (expectedCount > 1) {
+    let fits = false;
+    for (let columns = expectedCount; columns >= 1; columns--) {
+      const rows = Math.ceil(expectedCount / columns);
+      if (
+        perceptionGeometry.band.width / columns >= windowPx + perceptionGeometry.rem &&
+        perceptionGeometry.band.height / rows >= windowPx + perceptionGeometry.rem
+      ) {
+        fits = true;
+        break;
+      }
+    }
+    if (fits) break;
+    expectedCount--;
   }
-  await expect(page.locator('.vision-frame:visible')).toHaveCount(windowCount - 1);
+  expect(perceptionGeometry.count).toBe(expectedCount);
+
+  for (const frameBox of perceptionGeometry.frames) {
+    expect(frameBox.x).toBeGreaterThanOrEqual(perceptionGeometry.band.x - 2);
+    expect(frameBox.y).toBeGreaterThanOrEqual(perceptionGeometry.band.y - 2);
+    expect(frameBox.right).toBeLessThanOrEqual(
+      perceptionGeometry.band.x + perceptionGeometry.band.width + 2,
+    );
+    expect(frameBox.bottom).toBeLessThanOrEqual(
+      perceptionGeometry.band.y + perceptionGeometry.band.height + 2,
+    );
+  }
+
+  for (let left = 0; left < perceptionGeometry.frames.length; left++) {
+    for (let right = left + 1; right < perceptionGeometry.frames.length; right++) {
+      const a = perceptionGeometry.frames[left];
+      const b = perceptionGeometry.frames[right];
+      const horizontalGap = Math.max(a.x, b.x) - Math.min(a.right, b.right);
+      const verticalGap = Math.max(a.y, b.y) - Math.min(a.bottom, b.bottom);
+      expect(Math.max(horizontalGap, verticalGap)).toBeGreaterThanOrEqual(
+        perceptionGeometry.rem - 2,
+      );
+    }
+  }
 
   // Copy sits clear of the window, below the band.
   expect(perceptionCopy!.y).toBeGreaterThanOrEqual(perceptionFrame!.y + perceptionFrame!.height - 2);
@@ -240,7 +332,7 @@ test('reduced motion shows static stalled and recovered examples', async ({ page
   await expect(page.locator('#legend-layer')).not.toContainText(/\d+%|\d+ entities/);
 });
 
-test('opening hands off without changing technical content', async ({ page }) => {
+test('opening hands off to the approved technical content', async ({ page }) => {
   await navigateToPortfolioPage(page, PARALIFE_PATH);
   await scrollToTechSection(page);
 
@@ -248,9 +340,8 @@ test('opening hands off without changing technical content', async ({ page }) =>
   await expect(page.locator('#opening-visuals')).toBeHidden();
   await expect(page.locator('#tech-content .row-title')).toHaveText([
     'One writer, a thousand readers',
-    'The deadlock that taught me Loom',
-    "Slow clients don't get to win",
-    'Proving a rewrite changed nothing',
+    'The bug that needed a fleet',
+    'Slow sockets, second chances',
   ]);
-  await expect(page.locator('#tech-content .row')).toHaveCount(4);
+  await expect(page.locator('#tech-content .row')).toHaveCount(3);
 });
