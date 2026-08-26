@@ -228,7 +228,15 @@ test('responsive narrative geometry clears chrome and stays inside its visual fr
     ].map((glyph) => glyph.textContent);
     const headerBox = box(document.getElementById('header-panel')!);
     const copyBox = box(document.querySelector('.opening-line[data-beat="perception"]')!);
+    const frameInsetBox = box(document.getElementById('frame-inset')!);
     const rem = Number.parseFloat(getComputedStyle(document.documentElement).fontSize);
+    const phone = document.documentElement.clientWidth <= 600;
+    const bandTop = phone
+      ? Math.max(headerBox.bottom, copyBox.bottom, frameInsetBox.bottom) + rem
+      : headerBox.bottom + rem;
+    const bandBottom = phone
+      ? document.documentElement.clientHeight - rem
+      : copyBox.y - rem;
     return {
       ratio: Number(root.dataset.visionAreaRatio),
       count: Number(root.dataset.visionWindows),
@@ -237,9 +245,9 @@ test('responsive narrative geometry clears chrome and stays inside its visual fr
       rem,
       band: {
         x: rem,
-        y: headerBox.bottom + rem,
+        y: bandTop,
         width: document.documentElement.clientWidth - rem * 2,
-        height: copyBox.y - rem - (headerBox.bottom + rem),
+        height: bandBottom - bandTop,
       },
     };
   });
@@ -255,6 +263,7 @@ test('responsive narrative geometry clears chrome and stays inside its visual fr
 
   const frameArea = windowPx * windowPx;
   const bandArea = perceptionGeometry.band.width * perceptionGeometry.band.height;
+  expect(perceptionGeometry.band.height).toBeGreaterThan(0);
   expect(perceptionGeometry.count * frameArea).toBeLessThanOrEqual(
     bandArea * perceptionGeometry.ratio + 2,
   );

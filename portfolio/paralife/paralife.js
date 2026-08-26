@@ -43,7 +43,7 @@ let reseedTimer = null;
 const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
 
 let progressBar, scrollHint, headerPanelEl, narrativePanelEl, openingVisualsEl;
-let titleOverlayEl, perceptionLineEl;
+let titleOverlayEl, perceptionLineEl, frameInsetEl;
 let openingController;
 
 // ---------------------------------------------------------------------------
@@ -70,19 +70,24 @@ function visionAmount() {
 
 /** Observed-entity windows, snapped to the cell grid so the SVG frames sit
  *  exactly on the undimmed cells. Frames fill no more than the configured
- *  share of the clear band between the header and perception copy, then pack
- *  into the most horizontal centred grid that fits. */
+ *  share of the clear narrative band, then pack into the most horizontal
+ *  centred grid that fits. */
 function visionWindows() {
   const winCells = VISION_RADIUS * 2 + 1;
   const winPx = winCells * cellPx;
   const rem = parseFloat(getComputedStyle(document.documentElement).fontSize) || 16;
   const headerBottom = headerPanelEl.getBoundingClientRect().bottom;
-  const copyTop = perceptionLineEl.getBoundingClientRect().top;
+  const copyBox = perceptionLineEl.getBoundingClientRect();
+  const phone = W <= MOBILE_BREAKPOINT;
+  const bandTop = phone
+    ? Math.max(headerBottom, copyBox.bottom, frameInsetEl.getBoundingClientRect().bottom) + rem
+    : headerBottom + rem;
+  const bandBottom = phone ? H - rem : copyBox.top - rem;
   const band = {
     x: rem,
-    y: headerBottom + rem,
+    y: bandTop,
     width: Math.max(0, W - rem * 2),
-    height: Math.max(0, copyTop - rem - (headerBottom + rem)),
+    height: Math.max(0, bandBottom - bandTop),
   };
   const bandArea = band.width * band.height;
   const frameArea = winPx * winPx;
@@ -352,6 +357,7 @@ function init() {
   openingVisualsEl = document.getElementById('opening-visuals');
   titleOverlayEl = document.getElementById('title-overlay');
   openingController = window.ParalifeOpening.create(narrativePanelEl);
+  frameInsetEl = document.getElementById('frame-inset');
 
   resize();
   // The canvas follows the window immediately; the expensive world rebuild
