@@ -81,6 +81,21 @@ test.describe('phone narrative handoffs', () => {
     expect(dashboardOpacity).toBeLessThanOrEqual(0.05);
   });
 
+  test('Oasis keeps mobile narrative timing at the 600px boundary', async ({ page }) => {
+    await page.setViewportSize({ width: 600, height: 800 });
+    await navigateToPortfolioPage(page, '/portfolio/oasis/');
+    await scrollToProgress(page, 0.82);
+
+    const finalLineOpacity = await page.locator('.narrative-line').last().evaluate((line) =>
+      Number(getComputedStyle(line).opacity),
+    );
+    const dashboardOpacity = await page.locator('#dashboard').evaluate((dashboard) =>
+      Number(getComputedStyle(dashboard).opacity),
+    );
+    expect(finalLineOpacity).toBeGreaterThanOrEqual(0.8);
+    expect(dashboardOpacity).toBeLessThanOrEqual(0.05);
+  });
+
   test('Mystery reserves three lines for every narrative message', async ({ page }) => {
     await navigateToPortfolioPage(page, '/portfolio/mystery/');
 
@@ -109,6 +124,17 @@ test.describe('phone narrative handoffs', () => {
 
     await scrollToProgress(page, 0.96);
     await expect(page.locator('#narrative')).toHaveCSS('opacity', '0');
+  });
+
+  test('Mystery restores its narrative after rotating out of the phone breakpoint', async ({ page }) => {
+    await navigateToPortfolioPage(page, '/portfolio/mystery/');
+    await scrollToProgress(page, 0.96);
+    await expect(page.locator('#narrative')).toHaveCSS('opacity', '0');
+
+    await page.setViewportSize({ width: 667, height: 375 });
+
+    await expect(page.locator('.narrative-line').last()).toHaveCSS('opacity', '1');
+    await expect(page.locator('#narrative')).toHaveCSS('opacity', '1');
   });
 });
 

@@ -1121,9 +1121,7 @@ function render(timestamp) {
   const narrativeMatrixFade = W <= MOBILE_BREAKPOINT
     ? 1 - clamp01((t - 0.90) / 0.04)
     : 1;
-  if (W <= MOBILE_BREAKPOINT) {
-    narrativeEl.style.opacity = narrativeMatrixFade;
-  }
+  narrativeEl.style.opacity = narrativeMatrixFade * techFade;
   for (let i = 0; i < narrativeLines.length; i++) {
     const kf = interpolateKeyframes(LINE_KEYFRAMES[i], t);
     narrativeLines[i].style.opacity = kf.op * narrativeMatrixFade;
@@ -1394,8 +1392,6 @@ function init() {
         const p = self.progress;
         techFade = 1 - p;
         techProgress = p;
-
-        narrativeEl.style.opacity = 1 - p;
 
         titleOverlayEl.style.transform = 'scale(' + lerp(1, 0.55, p) + ')';
 
