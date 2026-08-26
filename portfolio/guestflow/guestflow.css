@@ -159,15 +159,19 @@
   #narrative-panel {
     left: 50%;
     top: auto;
-    bottom: 80px;
+    bottom: 88px;
     width: 88vw;
-    min-height: 3em;
+    font-size: clamp(18px, 4.5vw, 24px);
+    line-height: 1.4;
+    min-height: calc(4.2em + 20px);
+    height: calc(4.2em + 20px);
     background: rgba(0, 0, 0, 0.6);
     border: 1px solid rgba(0, 204, 204, 0.15);
     border-radius: 8px;
     padding: 10px 16px;
   }
   .narrative-line {
+    top: 50%;
     font-size: clamp(18px, 4.5vw, 24px);
   }
   #pipeline {
@@ -265,7 +269,7 @@
   color: rgba(255, 180, 100, 0.75);
 }
 
-/* -- One Worker per client: fleet ------------------------------------------------ */
+/* -- One Worker per host: fleet -------------------------------------------------- */
 .fleet-wrap {
   width: 100%;
   max-width: 400px;
@@ -290,7 +294,7 @@
   grid-template-columns: repeat(3, 1fr);
   gap: 8px;
 }
-.fleet-client {
+.fleet-host {
   border: 1px solid rgba(255, 255, 255, 0.12);
   border-radius: 10px;
   padding: 10px 6px;
@@ -310,7 +314,7 @@
   font-size: 10px;
   color: rgba(0, 204, 204, 0.6);
 }
-.fleet-client.fleet-drift {
+.fleet-host.fleet-drift {
   border-color: rgba(255, 180, 50, 0.5);
   background: rgba(255, 180, 50, 0.06);
 }

@@ -88,7 +88,7 @@ test('first three beats morph through one shared frame and reverse cleanly', asy
 test('durability follows scroll forward and reverse while preserving node identity', async ({ page }) => {
   await navigateToPortfolioPage(page, PARALIFE_PATH);
   const w = page.viewportSize()!.width;
-  const expectedClients = Math.max(16, Math.min(30, Math.round(w / 52)));
+  const expectedClients = w <= 600 ? 12 : Math.max(16, Math.min(30, Math.round(w / 52)));
   const node = page.locator('.network-client[data-client-id="client-03"]');
   const marker = await node.getAttribute('data-identity-marker');
   const glyph = await node.locator('.client-node').textContent();
@@ -172,9 +172,15 @@ test('opening content sits on localized translucent surfaces', async ({ page }) 
   expect(Math.abs(surfaceBox!.width - frameBox!.width)).toBeLessThanOrEqual(2);
   expect(Math.abs(surfaceBox!.height - frameBox!.height)).toBeLessThanOrEqual(2);
 
+  const phone = page.viewportSize()!.width <= 600;
+  await scrollToProgress(page, phone ? 0.22 : 0.65);
+  await expect(page.locator('#inset-surface')).toBeVisible();
+
   await scrollToProgress(page, 0.65);
   await expect(page.locator('#network-surface')).toBeVisible();
-  await expect(page.locator('#inset-surface')).toBeVisible();
+  if (phone) {
+    await expect(page.locator('#frame-inset')).toHaveCSS('opacity', '0');
+  }
 });
 
 test('responsive narrative geometry clears chrome and stays inside its visual frame', async ({ page }) => {
@@ -222,7 +228,15 @@ test('responsive narrative geometry clears chrome and stays inside its visual fr
     ].map((glyph) => glyph.textContent);
     const headerBox = box(document.getElementById('header-panel')!);
     const copyBox = box(document.querySelector('.opening-line[data-beat="perception"]')!);
+    const frameInsetBox = box(document.getElementById('frame-inset')!);
     const rem = Number.parseFloat(getComputedStyle(document.documentElement).fontSize);
+    const phone = document.documentElement.clientWidth <= 600;
+    const bandTop = phone
+      ? Math.max(headerBox.bottom, copyBox.bottom, frameInsetBox.bottom) + rem
+      : headerBox.bottom + rem;
+    const bandBottom = phone
+      ? document.documentElement.clientHeight - rem
+      : copyBox.y - rem;
     return {
       ratio: Number(root.dataset.visionAreaRatio),
       count: Number(root.dataset.visionWindows),
@@ -231,9 +245,9 @@ test('responsive narrative geometry clears chrome and stays inside its visual fr
       rem,
       band: {
         x: rem,
-        y: headerBox.bottom + rem,
+        y: bandTop,
         width: document.documentElement.clientWidth - rem * 2,
-        height: copyBox.y - rem - (headerBox.bottom + rem),
+        height: bandBottom - bandTop,
       },
     };
   });
@@ -249,6 +263,7 @@ test('responsive narrative geometry clears chrome and stays inside its visual fr
 
   const frameArea = windowPx * windowPx;
   const bandArea = perceptionGeometry.band.width * perceptionGeometry.band.height;
+  expect(perceptionGeometry.band.height).toBeGreaterThan(0);
   expect(perceptionGeometry.count * frameArea).toBeLessThanOrEqual(
     bandArea * perceptionGeometry.ratio + 2,
   );
@@ -298,8 +313,13 @@ test('responsive narrative geometry clears chrome and stays inside its visual fr
     }
   }
 
-  // Copy sits clear of the window, below the band.
-  expect(perceptionCopy!.y).toBeGreaterThanOrEqual(perceptionFrame!.y + perceptionFrame!.height - 2);
+  // Phone copy leads into the codec frame; larger layouts keep the established
+  // frame-first composition. Both arrangements clear the shared top chrome.
+  if (viewportWidth <= 600) {
+    expect(perceptionCopy!.y + perceptionCopy!.height).toBeLessThanOrEqual(perceptionFrame!.y + 2);
+  } else {
+    expect(perceptionCopy!.y).toBeGreaterThanOrEqual(perceptionFrame!.y + perceptionFrame!.height - 2);
+  }
   expect(perceptionFrame!.y).toBeGreaterThanOrEqual(header!.y + header!.height - 2);
   const frameOverlapsNav = !(
     perceptionFrame!.x + perceptionFrame!.width <= nav!.x ||

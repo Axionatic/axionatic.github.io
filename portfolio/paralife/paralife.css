@@ -413,6 +413,28 @@
   }
 }
 
+@media (max-width: 600px) {
+  .opening-line[data-beat="perception"],
+  .opening-line[data-beat="emergence"] {
+    top: 15%;
+    bottom: auto;
+    width: 84vw;
+    transform: translateX(-50%);
+  }
+
+  .opening-line[data-beat="perception"] {
+    transform: translate(-50%, 0);
+  }
+
+  .opening-line[data-beat="concurrency"] {
+    top: 15%;
+  }
+
+  #durability-title {
+    display: none;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .opening-line,
   #opening-visuals * {

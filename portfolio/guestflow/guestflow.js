@@ -246,27 +246,40 @@ function generateSites() {
   sites = [];
   const size = Math.min(W, H) * SITE_SIZE_FRAC;
   const gap = H * SITE_GAP_Y_FRAC;
-  const count = W <= MOBILE_BREAKPOINT ? 4 : SITE_COUNT;
+  const useSixSiteGrid = W <= MOBILE_BREAKPOINT && W >= 340 && H >= 560;
+  const count = W <= MOBILE_BREAKPOINT ? (useSixSiteGrid ? 6 : 4) : SITE_COUNT;
 
   if (W <= MOBILE_BREAKPOINT) {
-    // Mobile: centered vertical column with larger cards
-    const mobileSize = W * 0.19;
-    const colGap = mobileSize * 0.45;
-    const totalH = count * mobileSize + (count - 1) * colGap;
-    const ox = (W - mobileSize) / 2;
-    const oy = (H - totalH) / 2;
-    const midIdx = Math.floor(count / 2);
+    // Mobile: a compact grid leaves clear copy above and below it. The six-site
+    // layout is guaranteed at the supported 375x667 target; shorter unsupported
+    // screens fall back to four targets without clipping.
+    const columns = useSixSiteGrid ? 3 : 2;
+    const rows = 2;
+    const mobileSize = Math.min(W * 0.18, 72);
+    const gapX = mobileSize * 0.42;
+    const gapY = mobileSize * 0.50;
+    const totalW = columns * mobileSize + (columns - 1) * gapX;
+    const totalH = rows * mobileSize + (rows - 1) * gapY;
+    const ox = (W - totalW) / 2;
+    const visualTop = 116;
+    const visualBottom = H - 190;
+    const oy = visualTop + Math.max(0, (visualBottom - visualTop - totalH) / 2);
+    const ownedIdx = useSixSiteGrid ? 4 : 2;
     let otaIdx = 0;
     for (let i = 0; i < count; i++) {
+      const col = i % columns;
+      const row = Math.floor(i / columns);
       sites.push({
-        x: ox,
-        y: oy + i * (mobileSize + colGap),
+        x: ox + col * (mobileSize + gapX),
+        y: oy + row * (mobileSize + gapY),
         w: mobileSize,
         h: mobileSize,
-        label: i === midIdx ? GUESTFLOW_LABEL : OTA_LABELS[otaIdx++],
+        label: i === ownedIdx ? GUESTFLOW_LABEL : OTA_LABELS[otaIdx++],
       });
     }
-    guestflowIdx = midIdx;
+    guestflowIdx = ownedIdx;
+    canvas.dataset.siteLayout = useSixSiteGrid ? '2x3' : '2x2';
+    canvas.dataset.siteCount = String(count);
   } else {
     // Desktop/tablet: vertical stack on right
     const startX = W * SITE_AREA_RIGHT - size / 2;
@@ -284,6 +297,8 @@ function generateSites() {
       });
     }
     guestflowIdx = midIdx;
+    delete canvas.dataset.siteLayout;
+    canvas.dataset.siteCount = String(count);
   }
 }
 
@@ -296,6 +311,13 @@ function computeCurrentSites(t) {
   const gfBase = sites[guestflowIdx];
   const gfCenterY = gfBase.y + gfBase.h / 2;
   const gfGrowH = gfBase.h * t * (GUESTFLOW_GROW_FACTOR - 1);
+  const mobileGrid = W <= MOBILE_BREAKPOINT;
+  const gridCenter = mobileGrid
+    ? sites.reduce((center, site) => ({
+        x: center.x + (site.x + site.w / 2) / sites.length,
+        y: center.y + (site.y + site.h / 2) / sites.length,
+      }), { x: 0, y: 0 })
+    : null;
 
   for (let i = 0; i < sites.length; i++) {
     const base = sites[i];
@@ -304,8 +326,8 @@ function computeCurrentSites(t) {
       const gfW = base.w * grow;
       const gfH = base.h * grow;
       result.push({
-        x: W <= MOBILE_BREAKPOINT ? (W - gfW) / 2 : lerp(base.x, base.x - W * GUESTFLOW_SHIFT_LEFT, t),
-        y: base.y - (gfH - base.h) / 2,
+        x: mobileGrid ? lerp(base.x + base.w / 2, gridCenter.x, t) - gfW / 2 : lerp(base.x, base.x - W * GUESTFLOW_SHIFT_LEFT, t),
+        y: mobileGrid ? lerp(base.y + base.h / 2, gridCenter.y, t) - gfH / 2 : base.y - (gfH - base.h) / 2,
         w: gfW,
         h: gfH,
         isGuestflow: true,
@@ -314,15 +336,19 @@ function computeCurrentSites(t) {
       });
     } else {
       const shrink = 1 - t * (1 - OTHER_SHRINK_FACTOR);
-      const siteCenterY = base.y + base.h / 2;
-      const pushMult = W <= MOBILE_BREAKPOINT ? 0.8 : 0.5;
-      const push = Math.sign(siteCenterY - gfCenterY) * gfGrowH * pushMult;
       const shrunkW = base.w * shrink;
+      const shrunkH = base.h * shrink;
+      const siteCenterX = base.x + base.w / 2;
+      const siteCenterY = base.y + base.h / 2;
+      const dx = mobileGrid ? siteCenterX - gridCenter.x : 0;
+      const dy = siteCenterY - (mobileGrid ? gridCenter.y : gfCenterY);
+      const distance = Math.hypot(dx, dy) || 1;
+      const push = gfGrowH * (mobileGrid ? 0.46 : 0.5);
       result.push({
-        x: W <= MOBILE_BREAKPOINT ? (W - shrunkW) / 2 : base.x,
-        y: base.y + push,
+        x: mobileGrid ? siteCenterX + (dx / distance) * push - shrunkW / 2 : base.x,
+        y: mobileGrid ? siteCenterY + (dy / distance) * push - shrunkH / 2 : base.y + Math.sign(dy) * push,
         w: shrunkW,
-        h: base.h * shrink,
+        h: shrunkH,
         isGuestflow: false,
         morph: t,
         label: base.label,
@@ -705,7 +731,8 @@ function render() {
   for (let i = 0; i < narrativeLines.length; i++) {
     const kf = interpolateKeyframes(LINE_KEYFRAMES[i], t);
     narrativeLines[i].style.opacity = kf.op;
-    narrativeLines[i].style.transform = 'translateX(' + (-Math.abs(kf.y) * NARRATIVE_SLIDE_PX) + 'px)';
+    const verticalCenter = W <= MOBILE_BREAKPOINT ? 'translateY(-50%) ' : '';
+    narrativeLines[i].style.transform = verticalCenter + 'translateX(' + (-Math.abs(kf.y) * NARRATIVE_SLIDE_PX) + 'px)';
   }
 
   requestAnimationFrame(render);

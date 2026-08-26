@@ -276,7 +276,10 @@
     const insetCaption = document.createElementNS(SVG_NS, 'text');
     insetCaption.classList.add('inset-caption');
     frameInset.append(insetCodec, insetLabel, insetArrow, insetBytes, insetCaption);
-    networkLayer.appendChild(frameInset);
+    // Keep the codec readout independent of the network group's opacity: on
+    // phones it belongs to the earlier Perception beat, while larger layouts
+    // retain the richer concurrency composition.
+    svg.appendChild(frameInset);
 
     // One stylised tick = 1 s. The pulse is deliberately unlabelled so it makes
     // no false rate claim; the static "SERVER · 2 Hz" label describes the
@@ -333,6 +336,7 @@
         : { x: viewport.width * 0.18, y: viewport.height * 0.24, width: viewport.width * 0.64, height: viewport.height * 0.52 };
       const legendMorph = range(progress, LEGEND_MORPH);
       const mobile = viewport.width <= 800;
+      const phone = viewport.width <= 600;
       const server = mobile
         ? { x: viewport.width * 0.50, y: viewport.height * 0.73, width: 112, height: 64 }
         : { x: viewport.width * 0.64, y: viewport.height * 0.50, width: 128, height: 72 };
@@ -429,7 +433,7 @@
       const activePhase = reduced.matches ? state.clientPhase : dur.phase;
       let protagonist = null;
       const hw = server.width / 2, hh = server.height / 2;
-      const clientCount = Math.max(16, Math.min(30, Math.round(viewport.width / 52)));
+      const clientCount = phone ? 12 : Math.max(16, Math.min(30, Math.round(viewport.width / 52)));
 
       clients.forEach((client) => {
         const on = client.index < clientCount;
@@ -496,10 +500,11 @@
 
       // Frame readout: the vision window refreshes each tick, then the compact
       // frame beneath it shows what that projection actually ships on the wire.
-      // Desktop parks it lower-left; mobile floats a tighter version in the gap
-      // above the ring (the arrow line is dropped to save vertical space).
-      frameInset.style.opacity = beatOn ? '1' : '0';
-      if (beatOn) {
+      // Desktop/tablet retain the concurrency readout. Phones introduce it
+      // during Perception instead, then clear it before the legend/network beats.
+      const showFrameInset = phone ? state.beat === 'perception' : beatOn;
+      frameInset.style.opacity = showFrameInset ? '1' : '0';
+      if (showFrameInset) {
         const big = !mobile;
         const cell = big ? 30 : 14;
         const gridH = 5 * cell;
@@ -510,7 +515,10 @@
         insetBytes.style.fontSize = (big ? 16 : 12) + 'px';
         insetCaption.style.fontSize = (big ? 12 : 10) + 'px';
         let ix, iy;
-        if (mobile) {
+        if (phone) {
+          ix = viewport.width * 0.08;
+          iy = viewport.height * 0.39;
+        } else if (mobile) {
           ix = viewport.width * 0.08;
           // Centre it in the gap between the copy and the top of the ring, so it
           // clears both on short phones where that gap is tight.
@@ -663,9 +671,11 @@
       lines[0].style.transform = reduced.matches
         ? 'translateY(-50%)'
         : `translateY(-50%) scale(${lerp(1, 0.65, fieldCompression).toFixed(3)})`;
-      lines[1].style.transform = reduced.matches
-        ? 'translate(-50%, -50%)'
-        : `translate(-50%, -50%) scale(${lerp(0.82, 1, state.perceptionAmount).toFixed(3)})`;
+      lines[1].style.transform = phone
+        ? `translate(-50%, 0) scale(${reduced.matches ? 1 : lerp(0.82, 1, state.perceptionAmount).toFixed(3)})`
+        : reduced.matches
+          ? 'translate(-50%, -50%)'
+          : `translate(-50%, -50%) scale(${lerp(0.82, 1, state.perceptionAmount).toFixed(3)})`;
       const frameAmount = Math.max(state.perceptionAmount, state.legendAmount, state.networkAmount);
       frameLayer.style.opacity = (frameAmount * techFade).toFixed(3);
       perceptionLayer.style.opacity = (state.perceptionAmount * techFade).toFixed(3);
